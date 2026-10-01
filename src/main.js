@@ -1,9 +1,10 @@
-import QRCode from 'qrcode';
+import { createClient } from '@supabase/supabase-js';
 import './style.css';
 const URL_ = import.meta.env.VITE_SUPABASE_URL;
 const KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 const app = document.querySelector('#app');
-const LINE = '+16502484031';
+const supabase = createClient(URL_, KEY);
+let session = null;
 const TZ = 'America/Denver';
 const state = { data: null, view: 'today', member: 'all', client: 'all', status: 'open', search: '', open: null, busy: false };
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -26,9 +27,9 @@ function derive(){
  const aaron=members.find(x=>x.name==='Aaron Finkelstein')?.id;
  return {cm,pm,mm,aaron,upd:by(updates,'project_id'),lnk:by(links,'project_id'),sch:by(sched,'project_id'),subs:by(projects.filter(p=>p.parent_id),'parent_id')};
 }
-async function q(table,params){const r=await fetch(`${URL_}/rest/v1/${table}?${params}`,{headers:{apikey:KEY,Authorization:`Bearer ${KEY}`}});if(!r.ok)throw Error('Data request failed');return r.json();}
+async function q(table,params){const r=await fetch(`${URL_}/rest/v1/${table}?${params}`,{headers:{apikey:KEY,Authorization:`Bearer ${session.access_token}`}});if(!r.ok)throw Error('Data request failed');return r.json();}
 async function load(){
- if(state.busy)return;state.busy=true;
+ if(!session){loginView();return;}if(state.busy)return;state.busy=true;
  if(!state.data)app.innerHTML='<div class="loading"><span class="eyebrow">PRODUCTION / MONIGLE</span><h1>Getting the latest...</h1></div>';
  try {
   if(!URL_||!KEY)throw Error('Configuration missing');
@@ -78,21 +79,19 @@ function detail(p,d){const us=d.upd[p.id]||[],ls=d.lnk[p.id]||[],ss=d.sch[p.id]|
 }
 let lastFocus;
 function openDetail(id){const d=derive(),p=d.pm[id];if(!p)return;lastFocus=document.activeElement;state.open=id;const dialog=document.querySelector('#detail');dialog.innerHTML=detail(p,d);bind(dialog);dialog.showModal();dialog.querySelector('[data-close]').focus();}
-function smsLink(body,android=false){return `sms:${LINE}${android?'?':'&'}body=${encodeURIComponent(body)}`;}
 async function openComment(pid,iid){
  const d=derive(),p=d.pm[pid],i=state.data.sched.find(x=>x.id===iid);if(!p)return;
- const body=`Re: ${d.cm[p.client_id]?.name||'Production'} / ${p.name}${i?' / '+i.title:''}\n[Project ${p.id}${i?'; item '+i.id:''}]\n\nMy update: `;
- const mobile=matchMedia('(max-width: 700px)').matches && /iPhone|iPad|Android/i.test(navigator.userAgent);
- if(mobile){window.location.href=smsLink(body,/Android/i.test(navigator.userAgent));return;}
  lastFocus=document.activeElement;
  const dialog=document.querySelector('#comment-dialog');
- dialog.innerHTML=`<div class="dialog-head"><span class="eyebrow">COMMENT TO INSTINCT</span><button class="close" data-close aria-label="Close comment">×</button></div><h2 id="comment-title">Send an update about this.</h2><p>${esc(i?.title||p.name)}</p><p class="muted">Scan with your phone. The text includes the project ID so I know what to change. Add your note and tap Send in Messages.</p><div class="qr-row"><div id="qr" aria-label="QR code to open a project-context text"></div><div><label for="phone-type">Your phone</label><select id="phone-type"><option value="iphone">iPhone</option><option value="android">Android</option></select><p class="muted">Nothing is sent automatically.</p></div></div><label for="comment-body">Context included in your draft</label><textarea id="comment-body" rows="5"></textarea><div class="comment-actions"><a id="sms-open" class="primary">Open Messages</a><button id="copy-context">Copy context</button></div><p id="copy-status" role="status"></p>`;
- dialog.querySelector('#comment-body').value=body;
- let revision=0;
- const refresh=async()=>{const version=++revision;const link=smsLink(dialog.querySelector('#comment-body').value,dialog.querySelector('#phone-type').value==='android');dialog.querySelector('#sms-open').href=link;try{const image=await QRCode.toDataURL(link,{width:240,margin:4,errorCorrectionLevel:'M',color:{dark:'#132a25',light:'#ffffff'}});if(version===revision)dialog.querySelector('#qr').innerHTML=`<img width="240" height="240" src="${image}" alt="Scan to draft a text to Instinct">`;}catch{dialog.querySelector('#qr').textContent='Draft too long for a QR code. Use Copy context instead.';}};
- dialog.querySelector('#phone-type').onchange=refresh;dialog.querySelector('#comment-body').oninput=refresh;
- dialog.querySelector('#copy-context').onclick=async()=>{try{await navigator.clipboard.writeText(dialog.querySelector('#comment-body').value);dialog.querySelector('#copy-status').textContent='Copied. Paste it into your text to Instinct.';}catch{dialog.querySelector('#comment-body').select();dialog.querySelector('#copy-status').textContent='Select and copy the context above.';}};
- bind(dialog);dialog.showModal();dialog.querySelector('[data-close]').focus();await refresh();
+ dialog.innerHTML=`<div class="dialog-head"><span class="eyebrow">MESSAGE TO INSTINCT</span><button class="close" data-close aria-label="Close comment">×</button></div><h2 id="comment-title">What should I know?</h2><p class="comment-context">${esc(d.cm[p.client_id]?.name||'Production')} / ${esc(p.name)}${i?' / '+esc(i.title):''}</p><form id="comment-form"><label for="comment-name">Your name</label><input id="comment-name" name="name" required maxlength="120" autocomplete="name" value="${esc(session.user.user_metadata?.display_name||'')}"><label for="comment-note">Your message</label><textarea id="comment-note" name="note" required maxlength="5000" rows="5" placeholder="Share an update, correction or question"></textarea><p class="muted">Saved with your signed-in email and the project context. Instinct checks new messages hourly. A message does not change the project automatically.</p><button class="primary" type="submit">Send to Instinct</button><p id="comment-status" role="status" aria-live="polite"></p></form>`;
+ bind(dialog);dialog.showModal();dialog.querySelector('#comment-name').focus();
+ dialog.querySelector('form').onsubmit=async e=>{
+  e.preventDefault();const name=dialog.querySelector('#comment-name').value.trim(),note=dialog.querySelector('#comment-note').value.trim();
+  if(!name||!note)return;const button=dialog.querySelector('[type="submit"]'),status=dialog.querySelector('#comment-status');button.disabled=true;status.textContent='Saving your message...';
+  const {data,error}=await supabase.from('dashboard_comments').insert({project_id:p.id,schedule_item_id:i?.id||null,author_name:name,note}).select('id,created_at').single();
+  if(error){status.textContent='Could not save. Your message is still here. Check your connection or sign-in, then try again.';button.disabled=false;return;}
+  status.textContent=`Saved at ${stamp(data.created_at)} MT. Instinct will review it on the next check.`;button.textContent='Message saved';dialog.querySelector('#comment-note').readOnly=true;dialog.querySelector('#comment-name').readOnly=true;
+ };
 }
 function bind(root){
  root.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>openDetail(b.dataset.open));
@@ -102,13 +101,31 @@ function bind(root){
 }
 function render(){
  const d=derive(), newest=state.data.updates[0]?.created_at;
- app.innerHTML=`<header class="site-header"><a class="brand" href="#" id="home"><span class="brand-mark" aria-hidden="true">P</span><span>Production<small>MONIGLE / TEAM WORKSPACE</small></span></a><div class="sync"><span class="live-dot"></span>${state.error?'Refresh failed. Showing last loaded data.':`Loaded ${state.loaded.toLocaleTimeString('en-US',{timeZone:TZ,hour:'numeric',minute:'2-digit'})} MT`}<button id="refresh" aria-label="Refresh data">↻</button></div></header>
+ app.innerHTML=`<header class="site-header"><a class="brand" href="#" id="home"><span class="brand-mark" aria-hidden="true">P</span><span>Production<small>MONIGLE / TEAM WORKSPACE</small></span></a><div class="sync"><span class="live-dot"></span>${state.error?'Refresh failed. Showing last loaded data.':`Loaded ${state.loaded.toLocaleTimeString('en-US',{timeZone:TZ,hour:'numeric',minute:'2-digit'})} MT`}<button id="refresh" aria-label="Refresh data">↻</button><button id="signout">Sign out</button></div></header>
  <nav aria-label="Dashboard views">${[['today','Today'],['projects','Projects'],['schedule','Schedule']].map(([v,t])=>`<button data-view="${v}" ${state.view===v?'aria-current="page"':''}>${t}</button>`).join('')}</nav><main>${state.view==='today'?todayView(d):state.view==='projects'?projectsView(d):scheduleView(d)}</main><div class="footnote">Latest feed entry: ${newest?esc(stamp(newest))+' MT':'none recorded'}. Loading this page does not mean every project was checked.<br>Missing a change? Use Comment on any project or schedule item.</div><dialog id="detail" aria-labelledby="dialog-title"></dialog><dialog id="comment-dialog" aria-labelledby="comment-title"></dialog>`;
- bind(app);document.querySelector('#refresh').onclick=load;document.querySelector('#home').onclick=e=>{e.preventDefault();state.view='today';render();};
+ bind(app);document.querySelector('#signout').onclick=()=>supabase.auth.signOut();document.querySelector('#refresh').onclick=load;document.querySelector('#home').onclick=e=>{e.preventDefault();state.view='today';render();};
  for(const [id,key] of [['member','member'],['client','client'],['status','status']])document.getElementById(id)?.addEventListener('change',e=>{state[key]=e.target.value;render();document.getElementById(id).focus();});
  document.getElementById('search')?.addEventListener('input',e=>{const pos=e.target.selectionStart;state.search=e.target.value;render();const el=document.getElementById('search');el.focus();el.setSelectionRange(pos,pos);});
  document.querySelectorAll('dialog').forEach(dialog=>{dialog.addEventListener('close',()=>{state.open=null;lastFocus?.focus();});dialog.addEventListener('click',e=>{if(e.target===dialog){const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)dialog.close();}});});
 }
-load();
+function loginView(message=''){
+ app.innerHTML=`<main class="login-shell"><section class="login-card"><span class="eyebrow">PRODUCTION / MONIGLE</span><h1>Your team workspace.</h1><p>Sign in to see projects and send messages to Instinct.</p><form id="login-form"><label for="email">Your approved team email</label><input id="email" type="email" autocomplete="username" required placeholder="you@example.com"><label for="password">Password</label><input id="password" type="password" autocomplete="current-password" required><button class="primary" type="submit">Sign in</button></form><button id="forgot" class="text-button">Forgot your password?</button><p id="login-status" role="status">${esc(message)}</p><p class="muted">Access is limited to the team's approved email list. Ask Aaron if you need access.</p></section></main>`;
+ const status=document.querySelector('#login-status');
+ document.querySelector('#login-form').onsubmit=async e=>{e.preventDefault();const b=e.target.querySelector('button');b.disabled=true;status.textContent='Signing in...';const {error}=await supabase.auth.signInWithPassword({email:document.querySelector('#email').value.trim().toLowerCase(),password:document.querySelector('#password').value});b.disabled=false;if(error)status.textContent='Sign-in did not work. Check your email and password, or ask Aaron to check your access.';};
+ document.querySelector('#forgot').onclick=async()=>{const email=document.querySelector('#email').value.trim();if(!email){status.textContent='Enter your email above first.';return;}const {error}=await supabase.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin+'/#reset'});status.textContent=error?'Could not request a reset. Try again later.':'If that address has an account, a reset link will arrive by email.';};
+}
+function passwordView(){
+ app.innerHTML='<main class="login-shell"><section class="login-card"><h1>Set your own password.</h1><p>Use a password only you know.</p><form id="password-form"><label for="new-password">New password</label><input id="new-password" type="password" autocomplete="new-password" required minlength="10"><button class="primary">Save password</button><p id="password-status" role="status"></p></form></section></main>';
+ document.querySelector('form').onsubmit=async e=>{e.preventDefault();const {error}=await supabase.auth.updateUser({password:document.querySelector('#new-password').value});if(error){document.querySelector('#password-status').textContent='Could not change the password. Try again.';return;}history.replaceState({},'',window.location.pathname);startSession(session);};
+}
+async function startSession(next){
+ session=next;state.data=null;
+ if(!session){loginView();return;}
+ app.innerHTML='<div class="loading"><h1>Checking team access...</h1></div>';
+ const {data,error}=await supabase.rpc('is_dashboard_member');
+ if(error||!data){app.innerHTML='<main class="login-shell"><section class="login-card"><h1>Team access is not enabled for this email.</h1><p>Ask Aaron to add your exact sign-in email to the approved list.</p><button id="signout">Sign out</button></section></main>';document.querySelector('#signout').onclick=()=>supabase.auth.signOut();return;}
+ load();
+}
+supabase.auth.onAuthStateChange((event,next)=>{setTimeout(()=>{session=next;if(event==='PASSWORD_RECOVERY'||next&&window.location.hash==='#reset')passwordView();else startSession(next);},0);});
 // Do not refresh underneath a draft or while someone is reading a project.
-setInterval(()=>{if(!document.hidden&&!document.querySelector('dialog[open]'))load();},5*60*1000);
+setInterval(()=>{if(session&&state.data&&!document.hidden&&!document.querySelector('dialog[open]'))load();},5*60*1000);
