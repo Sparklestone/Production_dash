@@ -1,12 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 import './style.css';
+import { dateKey, groupAssignments, projectIsDone, clientMilestone, monthCells, shiftMonth } from './schedule.js';
 const URL_ = import.meta.env.VITE_SUPABASE_URL;
 const KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 const app = document.querySelector('#app');
 const supabase = createClient(URL_, KEY);
 let session = null;
 const TZ = 'America/Denver';
-const state = { data: null, view: 'today', member: 'all', client: 'all', status: 'open', search: '', open: null, busy: false };
+const state = { data: null, view: 'today', member: 'all', client: 'all', status: 'open', search: '', open: null, busy: false, scheduleModes: {}, calendarMonths: {}, completing: false };
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const labels = { active:'In progress', in_progress:'In progress', waiting:'Waiting', pending:'Planned', not_started:'Not started', done:'Done', blocked:'Blocked' };
 const label = s => labels[s] || String(s || 'Unknown').replaceAll('_',' ');
@@ -45,19 +46,52 @@ function projectCard(p,d){
  const ds=due(next?.due_date||p.due_date,p.status);
  return `<article class="project-card"><div class="card-top"><span class="eyebrow">${esc(d.cm[p.client_id]?.name||'No client')}</span><span class="pill ${esc(p.status)}">${esc(label(p.status))}</span></div><h3><button class="title-button" data-open="${p.id}">${esc(shortName(p,d))}</button></h3>${latest(p,d)}<div class="card-meta"><span>Lead: ${esc(d.mm[p.owner_id]?.name||'Not assigned')}</span><span class="${ds.cls}">${esc(ds.text)}${next?' · '+esc(next.title):''}</span></div><footer><button class="text-button" data-open="${p.id}">Details & links →</button>${commentButton(p)}</footer></article>`;
 }
-function taskCard(i,d){const p=d.pm[i.project_id];if(!p)return '';const dt=due(i.due_date,i.status);return `<article class="task-card"><div class="task-date ${dt.cls}">${esc(dt.text)}</div><h3><button class="title-button" data-open="${p.id}">${esc(i.title)}</button></h3><p class="task-context">${esc(d.cm[p.client_id]?.name||'')} / ${esc(shortName(p,d))}</p>${i.notes?`<p class="task-note">${esc(i.notes)}</p>`:''}<footer><span class="owner">${esc(d.mm[i.owner_id]?.name||'Not assigned')} · ${esc(label(i.status))}</span>${commentButton(p,i)}</footer></article>`;}
+function taskCard(i,d){const p=d.pm[i.project_id];if(!p)return '';const dt=due(i.due_date,i.status);return `<article class="task-card ${clientMilestone(i)?'client-milestone':''}">${clientMilestone(i)?'<span class="client-label">Client milestone</span>':''}<div class="task-date ${dt.cls}">${esc(dt.text)}</div><h3><button class="title-button" data-open="${p.id}">${esc(i.title)}</button></h3><p class="task-context">${esc(d.cm[p.client_id]?.name||'')} / ${esc(shortName(p,d))}</p>${i.notes?`<p class="task-note">${esc(i.notes)}</p>`:''}<footer><span class="owner">${esc(d.mm[i.owner_id]?.name||'Not assigned')} · ${esc(label(i.status))}</span>${commentButton(p,i)}</footer></article>`;}
+function assignmentGroups(items,d){
+ return groupAssignments(items,d.pm).map(group=>`<section class="assignment-group"><div class="assignment-heading"><h3><button class="title-button" data-open="${esc(group.project.id)}">${esc(d.cm[group.project.client_id]?.name||'Production')} / ${esc(shortName(group.project,d))}</button></h3><span class="number" aria-label="${group.count} assignments">${group.count}</span></div>${[...group.branches.values()].map(branch=>`${branch.project.id!==group.project.id?`<h4 class="branch-heading"><button class="title-button" data-open="${esc(branch.project.id)}">${esc(shortName(branch.project,d))}</button><span>${branch.items.length} assignment${branch.items.length===1?'':'s'}</span></h4>`:''}<div class="task-grid">${branch.items.map(i=>taskCard(i,d)).join('')}</div>`).join('')}</section>`).join('');
+}
+function projectSchedule(p,d){
+ const items=d.sch[p.id]||[],mode=state.scheduleModes[p.id]||'list';
+ const month=state.calendarMonths[p.id]||today().slice(0,7);state.calendarMonths[p.id]=month;
+ const monthName=new Date(month+'-01T12:00:00').toLocaleDateString('en-US',{month:'long',year:'numeric'});
+ return `<section class="project-schedule"><div class="schedule-heading"><h3 class="detail-heading">Schedule <span class="number">${items.length}</span></h3><div class="schedule-tabs" role="tablist" aria-label="Schedule view for ${esc(p.name)}">${['list','calendar'].map(v=>`<button role="tab" id="tab-${esc(p.id)}-${v}" aria-controls="schedule-${esc(p.id)}" aria-selected="${mode===v}" data-schedule-mode="${v}" data-project="${esc(p.id)}">${v==='list'?'List':'Calendar'}</button>`).join('')}</div></div><div id="schedule-${esc(p.id)}" role="tabpanel" aria-labelledby="tab-${esc(p.id)}-${mode}">${mode==='list'?items.map(i=>taskCard(i,d)).join('')||'<p class="muted">No schedule items recorded.</p>':`<div class="calendar-toolbar"><button data-month-step="-1" data-project="${esc(p.id)}" aria-label="Previous month">‹</button><h4 aria-live="polite">${esc(monthName)}</h4><button data-month-step="1" data-project="${esc(p.id)}" aria-label="Next month">›</button></div><p class="calendar-hint">Tap a date to see every card. Blue = client milestone.</p><div class="calendar-grid">${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(day=>`<span class="weekday">${day}</span>`).join('')}${monthCells(month).map(key=>{if(!key)return '<span class="calendar-blank" aria-hidden="true"></span>';const daily=items.filter(i=>dateKey(i.due_date)===key),client=daily.some(clientMilestone);return `<button class="calendar-day ${key===today()?'is-today':''} ${client?'has-client':''}" data-calendar-date="${key}" data-project="${esc(p.id)}" aria-label="${esc(fmtDate(key))}, ${daily.length} schedule items${client?', includes client milestone':''}" ${key===today()?'aria-current="date"':''}><span>${Number(key.slice(8))}</span>${daily.length?`<span class="day-count">${daily.length}<span class="day-count-label"> due</span></span>`:''}</button>`;}).join('')}</div>${items.some(i=>!dateKey(i.due_date))?`<div class="undated"><h4>No date set</h4>${items.filter(i=>!dateKey(i.due_date)).map(i=>taskCard(i,d)).join('')}</div>`:''}`}</div></section>`;
+}
+function refreshDetail(){const dialog=document.querySelector('#detail');dialog.innerHTML=detail(derive().pm[state.open],derive());bind(dialog);}
+function openDay(pid,key){
+ const d=derive(),p=d.pm[pid],items=(d.sch[pid]||[]).filter(i=>dateKey(i.due_date)===key),dialog=document.querySelector('#day-dialog');
+ dayFocus=document.activeElement;
+ dialog.innerHTML=`<div class="dialog-head"><span class="eyebrow">${esc(p.name)}</span><button class="close" data-close aria-label="Close date cards">×</button></div><h2 id="day-title">${esc(new Date(key+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}))}</h2><p class="day-summary">${items.length} schedule item${items.length===1?'':'s'}</p>${items.map(i=>taskCard(i,d)).join('')||'<p class="empty">Nothing scheduled on this date.</p>'}`;
+ bind(dialog);
+ dialog.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>{dialog.close();openDetail(b.dataset.open);});
+ dialog.querySelectorAll('[data-comment]').forEach(b=>b.onclick=()=>{dialog.close();openComment(b.dataset.comment,b.dataset.item);});
+ dialog.showModal();dialog.querySelector('[data-close]').focus();
+}
+async function completeProject(id){
+ if(state.completing)return;
+ const p=derive().pm[id];if(!p||p.status==='done')return;
+ const descendants=state.data.projects.filter(x=>x.parent_id===id).length;
+ if(!window.confirm(`Mark "${p.name}" complete? It will leave the open list.${descendants?' Subprojects will be hidden with it, but their statuses will not change.':''} You can still find it using Including done.`))return;
+ state.completing=true;
+ const dialog=document.querySelector('#detail'),button=dialog.querySelector('[data-complete]'),status=dialog.querySelector('#complete-status');
+ button.disabled=true;status.textContent='Saving completion...';
+ try{
+  const {data,error}=await supabase.rpc('complete_dashboard_project',{target_project_id:id});
+  if(error||data?.id!==id||data?.status!=='done')throw Error('Completion not confirmed');
+  p.status='done';dialog.close();render();
+ }catch{
+  status.textContent='Could not confirm completion. Nothing has been removed from your list. Try again or use Comment.';button.disabled=false;
+ }finally{state.completing=false;}
+}
 function todayView(d){
  const top=state.data.projects.filter(p=>!p.parent_id&&p.status!=='done');
- const open=state.data.sched.filter(i=>i.status!=='done'&&d.pm[i.project_id]?.status!=='done');
+ const open=state.data.sched.filter(i=>i.status!=='done'&&!projectIsDone(d.pm[i.project_id],d.pm));
  const mine=open.filter(i=>i.owner_id===d.aaron), past=mine.filter(i=>i.due_date&&i.due_date<today());
  const upcoming=mine.filter(i=>!i.due_date||i.due_date>=today()).sort((a,b)=>(a.due_date||'9999').localeCompare(b.due_date||'9999'));
- const next=[...upcoming.filter(i=>i.due_date).slice(0,2),...upcoming.filter(i=>!i.due_date).slice(0,1)];
- if(next.length<3)next.push(...upcoming.filter(i=>!next.includes(i)).slice(0,3-next.length));
  const waiting=top.filter(p=>['waiting','blocked'].includes(p.status));
  const recent=[...top].sort((a,b)=>(d.upd[b.id]?.[0]?.created_at||'').localeCompare(d.upd[a.id]?.[0]?.created_at||'')).slice(0,4);
  return `<section class="hero"><div><span class="eyebrow">YOUR DAILY VIEW</span><h1>What needs your attention.</h1><p>Your assignments first. The team picture below.</p></div><div class="hero-count"><b>${top.length}</b><span>open projects<br>across ${new Set(top.map(p=>p.client_id)).size} clients</span></div></section>
- <section class="focus-section"><div class="section-heading"><div><h2>On your plate <span class="number">${mine.length-past.length}</span></h2><p>Your next dates and undated work. ${next.length} of ${upcoming.length} open assignments shown.</p></div><button class="text-button" data-view="schedule" data-mine>See your schedule →</button></div><div class="task-grid">${next.length?next.map(i=>taskCard(i,d)).join(''):'<p class="empty">No upcoming assignments recorded for you.</p>'}</div></section>
- ${past.length?`<details class="status-check"><summary><span class="check-dot"></span>${past.length} past-due record${past.length>1?'s':''} to check <span class="summary-hint">Verify status, not a new ask</span></summary><p>These items still show open in the feed. They may already be complete. Comment to correct them.</p><div class="task-grid">${past.map(i=>taskCard(i,d)).join('')}</div></details>`:''}
+ <section class="focus-section"><div class="section-heading"><div><h2>On your plate <span class="number">${mine.length-past.length}</span></h2><p>Your next dates and undated work. All ${upcoming.length} open assignments, grouped by project and subproject.</p></div><button class="text-button" data-view="schedule" data-mine>See your schedule →</button></div>${upcoming.length?assignmentGroups(upcoming,d):'<p class="empty">No upcoming assignments recorded for you.</p>'}</section>
+ ${past.length?`<details class="status-check"><summary><span class="check-dot"></span>${past.length} past-due record${past.length>1?'s':''} to check <span class="summary-hint">Verify status, not a new ask</span></summary><p>These items still show open in the feed. They may already be complete. Comment to correct them.</p>${assignmentGroups(past,d)}</details>`:''}
  <section><div class="section-heading"><div><h2>Waiting on others <span class="number">${waiting.length}</span></h2><p>Projects marked waiting or blocked. Latest recorded context.</p></div></div><div class="project-grid waiting-grid">${waiting.length?waiting.map(p=>projectCard(p,d)).join(''):'<p class="empty">No waiting projects recorded.</p>'}</div></section>
  <section><div class="section-heading"><div><h2>Latest across the team</h2><p>The most recently updated projects, with source timestamps.</p></div><button class="text-button" data-view="projects">All projects →</button></div><div class="project-grid">${recent.map(p=>projectCard(p,d)).join('')}</div></section>`;
 }
@@ -66,19 +100,19 @@ const opt=(v,cur,t)=>`<option value="${esc(v)}" ${v===cur?'selected':''}>${esc(t
 function filters(schedule=false){return `<div class="filters"><label class="search-label">Search<input id="search" type="search" placeholder="Find a project, client or update" value="${esc(state.search)}"></label><label>Team member<select id="member">${opt('all',state.member,'Everyone')}${state.data.members.map(m=>opt(m.id,state.member,m.name)).join('')}</select></label><label>Client<select id="client">${opt('all',state.client,'All clients')}${state.data.clients.map(c=>opt(c.id,state.client,c.name)).join('')}</select></label><label>Status<select id="status">${opt('open',state.status,'Open')}${opt('all',state.status,'Including done')}${(schedule?['pending','in_progress','waiting','blocked','done']:['active','waiting','blocked','not_started','done']).map(s=>opt(s,state.status,label(s))).join('')}</select></label></div>`;}
 function projectsView(d){const list=filtered(d);const groups=by(list,'client_id');return `<div class="page-title"><h1>All projects</h1><p>Find the work, latest context and every project link.</p></div>${filters()}<p class="results">${list.length} projects shown</p>${list.length?Object.keys(groups).sort((a,b)=>(d.cm[a]?.name||'').localeCompare(d.cm[b]?.name||'')).map(c=>`<section><div class="section-heading"><h2>${esc(d.cm[c]?.name||'No client')} <span class="number">${groups[c].length}</span></h2></div><div class="project-grid">${groups[c].map(p=>projectCard(p,d)).join('')}</div></section>`).join(''):'<p class="empty">Nothing matches. Try another filter.</p>'}`;}
 function scheduleView(d){
- const xs=state.data.sched.filter(i=>(state.status==='all'||state.status==='open'&&i.status!=='done'||i.status===state.status)&&(state.member==='all'||i.owner_id===state.member)&&(state.client==='all'||d.pm[i.project_id]?.client_id===state.client)&&[i.title,i.notes,d.pm[i.project_id]?.name,d.cm[d.pm[i.project_id]?.client_id]?.name].join(' ').toLowerCase().includes(state.search.toLowerCase()));
+ const xs=state.data.sched.filter(i=>(state.status==='all'||state.status==='open'&&i.status!=='done'&&!projectIsDone(d.pm[i.project_id],d.pm)||state.status!=='open'&&i.status===state.status)&&(state.member==='all'||i.owner_id===state.member)&&(state.client==='all'||d.pm[i.project_id]?.client_id===state.client)&&[i.title,i.notes,d.pm[i.project_id]?.name,d.cm[d.pm[i.project_id]?.client_id]?.name].join(' ').toLowerCase().includes(state.search.toLowerCase()));
  const groups=[['Check recorded status',xs.filter(i=>i.status!=='done'&&i.due_date&&i.due_date<today())],['Upcoming dates',xs.filter(i=>i.status!=='done'&&i.due_date&&i.due_date>=today())],['No date set',xs.filter(i=>i.status!=='done'&&!i.due_date)],['Completed',xs.filter(i=>i.status==='done')]];
  return `<div class="page-title"><h1>Schedule</h1><p>Recorded milestones and assignments, not a live calendar.</p></div>${filters(true)}<p class="results">${xs.length} items shown · Dates are Mountain time. Past dates need a status check.</p>${groups.filter(([,v])=>v.length).map(([name,v])=>`<section><div class="section-heading"><h2>${name} <span class="number">${v.length}</span></h2></div><div class="task-grid">${v.map(i=>taskCard(i,d)).join('')}</div></section>`).join('')||'<p class="empty">No schedule items match.</p>'}`;
 }
 function safeLink(url){try{const u=new URL(url);return ['https:','http:'].includes(u.protocol)?u.href:null;}catch{return null;}}
 function detail(p,d){const us=d.upd[p.id]||[],ls=d.lnk[p.id]||[],ss=d.sch[p.id]||[],subs=d.subs[p.id]||[];
- return `<div class="dialog-head"><span class="eyebrow">${esc(d.cm[p.client_id]?.name||'PROJECT')}</span><button class="close" data-close aria-label="Close project details">×</button></div><h2 id="dialog-title">${esc(p.name)}</h2><div class="detail-meta"><span class="pill ${esc(p.status)}">${esc(label(p.status))}</span><span>Lead: ${esc(d.mm[p.owner_id]?.name||'Not assigned')}</span>${commentButton(p)}</div>${p.description?`<details class="background"><summary>Project background</summary><p>${esc(p.description)}</p><small>Background may predate the latest updates below.</small></details>`:''}
+ return `<div class="dialog-head"><span class="eyebrow">${esc(d.cm[p.client_id]?.name||'PROJECT')}</span><button class="close" data-close aria-label="Close project details">×</button></div><h2 id="dialog-title">${esc(p.name)}</h2><div class="detail-meta"><span class="pill ${esc(p.status)}">${esc(label(p.status))}</span><span>Lead: ${esc(d.mm[p.owner_id]?.name||'Not assigned')}</span>${commentButton(p)}${p.status!=='done'?`<button class="primary complete-button" data-complete="${esc(p.id)}">✓ Complete</button>`:''}</div><p id="complete-status" role="status" aria-live="polite"></p>${p.description?`<details class="background"><summary>Project background</summary><p>${esc(p.description)}</p><small>Background may predate the latest updates below.</small></details>`:''}
  <h3 class="detail-heading">Latest update</h3>${latest(p,d,true)}<h3 class="detail-heading">Files & links <span class="number">${ls.length+subs.reduce((n,s)=>n+(d.lnk[s.id]||[]).length,0)}</span></h3>${[...ls,...subs.flatMap(s=>d.lnk[s.id]||[])].map(l=>{const href=safeLink(l.url);return href?`<a class="file-link" href="${esc(href)}" target="_blank" rel="noopener noreferrer">${esc(l.label)} <span>↗</span></a>`:`<div class="file-link disabled">${esc(l.label)}<small>URL not recorded</small></div>`;}).join('')||'<p class="muted">No links recorded yet. Comment to add one.</p>'}
- <h3 class="detail-heading">Schedule</h3>${ss.map(i=>taskCard(i,d)).join('')||'<p class="muted">No schedule items recorded.</p>'}${subs.length?`<h3 class="detail-heading">Subprojects</h3>${subs.map(s=>`<article class="subproject"><h4>${esc(s.name)}</h4><span class="pill ${esc(s.status)}">${esc(label(s.status))}</span><p>${esc(s.description)}</p>${commentButton(s)}</article>`).join('')}`:''}
+ ${projectSchedule(p,d)}${subs.length?`<h3 class="detail-heading">Subprojects</h3>${subs.map(s=>`<article class="subproject"><h4><button class="title-button" data-open="${esc(s.id)}">${esc(s.name)} →</button></h4><span class="pill ${esc(s.status)}">${esc(label(s.status))}</span><p>${esc(s.description)}</p>${commentButton(s)}${projectSchedule(s,d)}</article>`).join('')}`:''}
  <details class="history"><summary>Earlier updates (${Math.max(0,us.length-1)})</summary>${us.slice(1).map(u=>`<article><small>${esc(stamp(u.created_at))} MT</small><p>${esc(u.note)}</p></article>`).join('')||'<p class="muted">No earlier updates.</p>'}</details>`;
 }
-let lastFocus;
-function openDetail(id){const d=derive(),p=d.pm[id];if(!p)return;lastFocus=document.activeElement;state.open=id;const dialog=document.querySelector('#detail');dialog.innerHTML=detail(p,d);bind(dialog);dialog.showModal();dialog.querySelector('[data-close]').focus();}
+let lastFocus, dayFocus;
+function openDetail(id){const d=derive(),p=d.pm[id];if(!p)return;lastFocus=document.activeElement;state.open=id;const dialog=document.querySelector('#detail');dialog.innerHTML=detail(p,d);bind(dialog);if(!dialog.open)dialog.showModal();dialog.querySelector('[data-close]').focus();}
 async function openComment(pid,iid){
  const d=derive(),p=d.pm[pid],i=state.data.sched.find(x=>x.id===iid);if(!p)return;
  lastFocus=document.activeElement;
@@ -94,6 +128,15 @@ async function openComment(pid,iid){
  };
 }
 function bind(root){
+ root.querySelectorAll('[data-complete]').forEach(b=>b.onclick=()=>completeProject(b.dataset.complete));
+ root.querySelectorAll('[data-schedule-mode]').forEach(b=>b.onclick=()=>{state.scheduleModes[b.dataset.project]=b.dataset.scheduleMode;refreshDetail();document.querySelector(`[data-project="${b.dataset.project}"][data-schedule-mode="${b.dataset.scheduleMode}"]`)?.focus();});
+ root.querySelectorAll('[role="tablist"]').forEach(list=>list.onkeydown=e=>{
+  if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;
+  const tabs=[...list.querySelectorAll('[role="tab"]')],index=tabs.indexOf(document.activeElement);if(index<0)return;
+  e.preventDefault();tabs[e.key==='Home'?0:e.key==='End'?tabs.length-1:(index+(e.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length].click();
+ });
+ root.querySelectorAll('[data-month-step]').forEach(b=>b.onclick=()=>{state.calendarMonths[b.dataset.project]=shiftMonth(state.calendarMonths[b.dataset.project]||today().slice(0,7),Number(b.dataset.monthStep));refreshDetail();document.querySelector(`[data-project="${b.dataset.project}"][data-month-step="${b.dataset.monthStep}"]`)?.focus();});
+ root.querySelectorAll('[data-calendar-date]').forEach(b=>b.onclick=()=>openDay(b.dataset.project,b.dataset.calendarDate));
  root.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>openDetail(b.dataset.open));
  root.querySelectorAll('[data-comment]').forEach(b=>b.onclick=()=>openComment(b.dataset.comment,b.dataset.item));
  root.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>b.closest('dialog').close());
@@ -102,11 +145,11 @@ function bind(root){
 function render(){
  const d=derive(), newest=state.data.updates[0]?.created_at;
  app.innerHTML=`<header class="site-header"><a class="brand" href="#" id="home"><span class="brand-mark" aria-hidden="true">P</span><span>Production<small>MONIGLE / TEAM WORKSPACE</small></span></a><div class="sync"><span class="live-dot"></span>${state.error?'Refresh failed. Showing last loaded data.':`Loaded ${state.loaded.toLocaleTimeString('en-US',{timeZone:TZ,hour:'numeric',minute:'2-digit'})} MT`}<button id="refresh" aria-label="Refresh data">↻</button><button id="signout">Sign out</button></div></header>
- <nav aria-label="Dashboard views">${[['today','Today'],['projects','Projects'],['schedule','Schedule']].map(([v,t])=>`<button data-view="${v}" ${state.view===v?'aria-current="page"':''}>${t}</button>`).join('')}</nav><main>${state.view==='today'?todayView(d):state.view==='projects'?projectsView(d):scheduleView(d)}</main><div class="footnote">Latest feed entry: ${newest?esc(stamp(newest))+' MT':'none recorded'}. Loading this page does not mean every project was checked.<br>Missing a change? Use Comment on any project or schedule item.</div><dialog id="detail" aria-labelledby="dialog-title"></dialog><dialog id="comment-dialog" aria-labelledby="comment-title"></dialog>`;
+ <nav aria-label="Dashboard views">${[['today','Today'],['projects','Projects'],['schedule','Schedule']].map(([v,t])=>`<button data-view="${v}" ${state.view===v?'aria-current="page"':''}>${t}</button>`).join('')}</nav><main>${state.view==='today'?todayView(d):state.view==='projects'?projectsView(d):scheduleView(d)}</main><div class="footnote">Latest feed entry: ${newest?esc(stamp(newest))+' MT':'none recorded'}. Loading this page does not mean every project was checked.<br>Missing a change? Use Comment on any project or schedule item.</div><dialog id="detail" aria-labelledby="dialog-title"></dialog><dialog id="comment-dialog" aria-labelledby="comment-title"></dialog><dialog id="day-dialog" aria-labelledby="day-title"></dialog>`;
  bind(app);document.querySelector('#signout').onclick=()=>supabase.auth.signOut();document.querySelector('#refresh').onclick=load;document.querySelector('#home').onclick=e=>{e.preventDefault();state.view='today';render();};
  for(const [id,key] of [['member','member'],['client','client'],['status','status']])document.getElementById(id)?.addEventListener('change',e=>{state[key]=e.target.value;render();document.getElementById(id).focus();});
  document.getElementById('search')?.addEventListener('input',e=>{const pos=e.target.selectionStart;state.search=e.target.value;render();const el=document.getElementById('search');el.focus();el.setSelectionRange(pos,pos);});
- document.querySelectorAll('dialog').forEach(dialog=>{dialog.addEventListener('close',()=>{state.open=null;lastFocus?.focus();});dialog.addEventListener('click',e=>{if(e.target===dialog){const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)dialog.close();}});});
+ document.querySelectorAll('dialog').forEach(dialog=>{dialog.addEventListener('close',()=>{if(dialog.id==='detail')state.open=null;(dialog.id==='day-dialog'?dayFocus:lastFocus)?.focus();});dialog.addEventListener('click',e=>{if(e.target===dialog){const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)dialog.close();}});});
 }
 function loginView(message=''){
  app.innerHTML=`<main class="login-shell"><section class="login-card"><span class="eyebrow">PRODUCTION / MONIGLE</span><h1>Your team workspace.</h1><p>Sign in to see projects and send messages to Instinct.</p><form id="login-form"><label for="email">Your approved team email</label><input id="email" type="email" autocomplete="username" required placeholder="you@example.com"><label for="password">Password</label><input id="password" type="password" autocomplete="current-password" required><button class="primary" type="submit">Sign in</button></form><button id="forgot" class="text-button">Forgot your password?</button><p id="login-status" role="status">${esc(message)}</p><p class="muted">Access is limited to the team's approved email list. Ask Aaron if you need access.</p></section></main>`;
