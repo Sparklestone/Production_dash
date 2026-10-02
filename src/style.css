@@ -31,3 +31,12 @@
 @media(max-width:600px){.task-card .task-done{flex:1 0 100%;order:-1;white-space:nowrap}.task-card footer .comment{margin-left:auto}}
 /* Focus the exact task requested from Today or Schedule, distinct from milestones. */
 .task-card[data-task-highlight="true"]{outline:3px solid #008a86;outline-offset:3px;box-shadow:0 0 0 6px #008a8618;scroll-margin-top:90px}
+/* Compact project step strip: completed black, current teal, milestone outlines. */
+.mini-timeline{display:flex;align-items:center;list-style:none;padding:7px 2px;margin:0 0 18px;overflow-x:auto;max-width:100%;min-height:28px}
+.timeline-step{position:relative;display:flex;align-items:center;flex:1 0 28px;min-width:28px;max-width:56px;height:20px}
+.timeline-step:not(:last-child)::after{content:"";position:absolute;height:2px;left:14px;right:0;top:9px;background:#9caeaa}
+.step-circle{z-index:1;display:block;width:16px;height:16px;border:2px solid #586d67;border-radius:50%;background:#fff;flex-shrink:0}
+.step-review .step-circle{border-color:#245ba0}.step-release .step-circle{border-color:#70419c}
+.step-done .step-circle{background:#182e28;border-color:#182e28}.step-current .step-circle{border:3px solid #008a86;box-shadow:0 0 0 2px #fff}
+.task-card.has-current-step,.project-card.has-current-step{background:#d1f1ee;border-color:#008a86}
+.task-card.has-current-step{border-left-color:#008a86}

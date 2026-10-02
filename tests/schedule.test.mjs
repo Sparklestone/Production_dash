@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { dateKey, groupAssignments, projectIsDone, clientMilestone, milestoneKind, isWeekend, monthCells, shiftMonth, nextMilestone } from '../src/schedule.js';
+import { dateKey, groupAssignments, projectIsDone, clientMilestone, milestoneKind, isWeekend, monthCells, shiftMonth, nextMilestone, timelineSteps, timelineStepState } from '../src/schedule.js';
 test('calendar keeps date-only values stable and handles leap years',()=>{
  assert.equal(dateKey('2026-10-05T00:00:00Z'),'2026-10-05');
  assert.equal(dateKey(null),null);
@@ -54,4 +54,19 @@ test('next milestone badge selects dated open descendant milestones, not unrelat
  assert.equal(nextMilestone(projects.p,items,projects,'2026-10-02').id,'review');
  projects.s.status='done';assert.equal(nextMilestone(projects.p,items,projects,'2026-10-02').id,'release');
  projects.p.status='done';assert.equal(nextMilestone(projects.p,items,projects,'2026-10-02'),null);
+});
+
+
+test('timeline shows all steps in date order with undated last and descendant rollups',()=>{
+ const projects={p:{id:'p'},s:{id:'s',parent_id:'p'},x:{id:'x'}};
+ const items=[{id:'u',project_id:'p',title:'Undated'}, {id:'r',project_id:'s',title:'Client review',due_date:'2026-10-05'},
+ {id:'d',project_id:'p',title:'Release',due_date:'2026-10-01',status:'done'},
+ {id:'c',project_id:'p',title:'Build',due_date:'2026-10-02',status:'in_progress'}, {id:'x',project_id:'x',title:'Other'}];
+ assert.deepEqual(timelineSteps(projects.p,items,projects).map(i=>i.id),['d','c','r','u']);
+ assert.deepEqual(timelineSteps(projects.s,items,projects).map(i=>i.id),['r']);
+ assert.equal(timelineStepState(items[2]),'done');assert.equal(timelineStepState(items[3]),'current');
+ assert.equal(timelineStepState(items[1]),'review');assert.equal(timelineStepState({title:'Release'}),'release');
+ assert.equal(timelineStepState({title:'Internal'}),'upcoming');
+ assert.equal(timelineStepState({title:'Client review',status:'in_progress'}),'current');
+ assert.deepEqual(timelineSteps(projects.x,[],projects),[]);
 });

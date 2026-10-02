@@ -69,3 +69,17 @@ export function nextMilestone(project, items, projects, todayKey) {
  return items.filter(i=>i.status!=='done'&&!projectIsDone(projects[i.project_id],projects)&&belongs(i)&&milestoneKind(i)&&dateKey(i.due_date)>=todayKey)
   .sort((a,b)=>dateKey(a.due_date).localeCompare(dateKey(b.due_date))||a.title.localeCompare(b.title))[0]||null;
 }
+
+// Project cards roll up descendants; task cards use their own containing project.
+export function timelineSteps(project, items, projects) {
+ const belongs = item => {
+  let current=projects[item.project_id];const seen=new Set();
+  while(current&&!seen.has(current.id)) {
+   if(current.id===project.id)return true;
+   seen.add(current.id);current=projects[current.parent_id];
+  }
+  return false;
+ };
+ return items.filter(belongs).sort((a,b)=>(dateKey(a.due_date)||'9999').localeCompare(dateKey(b.due_date)||'9999')||a.title.localeCompare(b.title)||a.id.localeCompare(b.id));
+}
+export const timelineStepState = item => item.status==='done'?'done':item.status==='in_progress'?'current':milestoneKind(item)||'upcoming';
