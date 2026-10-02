@@ -7,7 +7,7 @@ const app = document.querySelector('#app');
 const supabase = createClient(URL_, KEY);
 let session = null;
 const TZ = 'America/Denver';
-const state = { data: null, view: 'today', member: 'all', client: 'all', status: 'open', search: '', open: null, busy: false, scheduleModes: {}, calendarMonths: {}, completing: false, openDay: null, focusedTask: null };
+const state = { data: null, view: 'today', member: 'all', client: 'all', status: 'open', search: '', open: null, busy: false, scheduleModes: {}, calendarMonths: {}, completing: false, openDay: null, focusedTask: null, expandedProjects: {} };
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const labels = { active:'In progress', in_progress:'In progress', waiting:'Waiting', pending:'Planned', not_started:'Not started', done:'Done', blocked:'Blocked' };
 const label = s => labels[s] || String(s || 'Unknown').replaceAll('_',' ');
@@ -61,21 +61,27 @@ function taskCard(i,d,expanded=false){
 function assignmentGroups(items,d){
  return groupAssignments(items,d.pm).map(group=>`<section class="assignment-group"><div class="assignment-heading"><h3><button class="title-button" data-open="${esc(group.project.id)}">${esc(d.cm[group.project.client_id]?.name||'Production')} / ${esc(shortName(group.project,d))}</button></h3><span class="number" aria-label="${group.count} assignments">${group.count}</span></div>${[...group.branches.values()].map(branch=>`${branch.project.id!==group.project.id?`<h4 class="branch-heading"><button class="title-button" data-open="${esc(branch.project.id)}">${esc(shortName(branch.project,d))}</button><span>${branch.items.length} assignment${branch.items.length===1?'':'s'}</span></h4>`:''}<div class="task-grid">${branch.items.map(i=>taskCard(i,d)).join('')}</div>`).join('')}</section>`).join('');
 }
-function projectSchedule(p,d){
- const items=d.sch[p.id]||[],mode=state.scheduleModes[p.id]||'list';
- const month=state.calendarMonths[p.id]||today().slice(0,7);state.calendarMonths[p.id]=month;
- const monthName=new Date(month+'-01T12:00:00').toLocaleDateString('en-US',{month:'long',year:'numeric'});
- return `<section class="project-schedule"><div class="schedule-heading"><h3 class="detail-heading">Schedule <span class="number">${items.length}</span></h3><div class="schedule-tabs" role="tablist" aria-label="Schedule view for ${esc(p.name)}">${['list','calendar'].map(v=>`<button role="tab" id="tab-${esc(p.id)}-${v}" aria-controls="schedule-${esc(p.id)}" aria-selected="${mode===v}" data-schedule-mode="${v}" data-project="${esc(p.id)}">${v==='list'?'List':'Calendar'}</button>`).join('')}</div></div><div id="schedule-${esc(p.id)}" role="tabpanel" aria-labelledby="tab-${esc(p.id)}-${mode}">${mode==='list'?items.map(i=>taskCard(i,d)).join('')||'<p class="muted">No schedule items recorded.</p>':`<div class="calendar-toolbar"><button data-month-step="-1" data-project="${esc(p.id)}" aria-label="Previous month">‹</button><h4 aria-live="polite">${esc(monthName)}</h4><button data-month-step="1" data-project="${esc(p.id)}" aria-label="Next month">›</button></div><p class="calendar-hint">Weekdays only. Tap a date for all cards.</p>${milestoneLegend()}<div class="calendar-grid">${['Mon','Tue','Wed','Thu','Fri'].map(day=>`<span class="weekday">${day}</span>`).join('')}${monthCells(month).map(key=>{if(!key)return '<span class="calendar-blank" aria-hidden="true"></span>';const daily=items.filter(i=>dateKey(i.due_date)===key),client=daily.some(clientMilestone);return `<button class="calendar-day ${key===today()?'is-today':''} " data-calendar-date="${key}" data-project="${esc(p.id)}" aria-label="${esc(fmtDate(key))}, ${daily.length} schedule items${client?', includes client milestone':''}" ${key===today()?'aria-current="date"':''}><span>${Number(key.slice(8))}</span>${daily.length?`<span class="calendar-events">${daily.slice(0,3).map(i=>`<span class="calendar-event ${milestoneKind(i)?`event-${milestoneKind(i)}`:''} ${i.status==='done'?'event-done':''}" title="${esc(i.title)}">${esc(i.title)}</span>`).join('')}${daily.length>3?`<span class="calendar-more">+${daily.length-3} more</span>`:''}</span>`:''}</button>`;}).join('')}</div>${weekendSchedule(items,month,p.id,d)}${items.some(i=>!dateKey(i.due_date))?`<div class="undated"><h4>No date set</h4>${items.filter(i=>!dateKey(i.due_date)).map(i=>taskCard(i,d)).join('')}</div>`:''}`}</div></section>`;
+function projectStepListings(p,d,seen=new Set()){
+ if(seen.has(p.id))return '';seen.add(p.id);
+ const items=d.sch[p.id]||[];
+ return `<section class="page-step-group"><h4><button class="title-button" data-open="${esc(p.id)}">${esc(shortName(p,d))}</button></h4><div class="task-grid">${items.map(i=>taskCard(i,d)).join('')||'<p class="muted">No direct steps recorded.</p>'}</div>${(d.subs[p.id]||[]).map(child=>projectStepListings(child,d,seen)).join('')}</section>`;
 }
-function weekendSchedule(items,month,pid,d){
+function projectSchedule(p,d,rollup=false){
+ const key=rollup?'page-'+p.id:p.id;
+ const items=rollup?timelineSteps(p,state.data.sched,d.pm):d.sch[p.id]||[],mode=state.scheduleModes[key]||'list';
+ const month=state.calendarMonths[key]||today().slice(0,7);state.calendarMonths[key]=month;
+ const monthName=new Date(month+'-01T12:00:00').toLocaleDateString('en-US',{month:'long',year:'numeric'});
+ return `<section class="project-schedule"><div class="schedule-heading"><h3 class="detail-heading">Schedule <span class="number">${items.length}</span></h3><div class="schedule-tabs" role="tablist" aria-label="Schedule view for ${esc(p.name)}">${['list','calendar'].map(v=>`<button role="tab" id="tab-${esc(key)}-${v}" aria-controls="schedule-${esc(key)}" aria-selected="${mode===v}" data-schedule-mode="${v}" data-project="${esc(p.id)}" data-schedule-key="${esc(key)}">${v==='list'?'List':'Calendar'}</button>`).join('')}</div></div><div id="schedule-${esc(key)}" role="tabpanel" aria-labelledby="tab-${esc(key)}-${mode}">${mode==='list'?(rollup?projectStepListings(p,d):items.map(i=>taskCard(i,d)).join(''))||'<p class="muted">No schedule items recorded.</p>':`<div class="calendar-toolbar"><button data-month-step="-1" data-project="${esc(p.id)}" data-schedule-key="${esc(key)}" aria-label="Previous month">‹</button><h4 aria-live="polite">${esc(monthName)}</h4><button data-month-step="1" data-project="${esc(p.id)}" data-schedule-key="${esc(key)}" aria-label="Next month">›</button></div><p class="calendar-hint">Weekdays only. Tap a date for all cards.</p>${milestoneLegend()}<div class="calendar-grid">${['Mon','Tue','Wed','Thu','Fri'].map(day=>`<span class="weekday">${day}</span>`).join('')}${monthCells(month).map(key=>{if(!key)return '<span class="calendar-blank" aria-hidden="true"></span>';const daily=items.filter(i=>dateKey(i.due_date)===key),client=daily.some(clientMilestone);return `<button class="calendar-day ${key===today()?'is-today':''} " data-calendar-date="${key}" data-project="${esc(p.id)}" ${rollup?'data-rollup="true"':''} aria-label="${esc(fmtDate(key))}, ${daily.length} schedule items${client?', includes client milestone':''}" ${key===today()?'aria-current="date"':''}><span>${Number(key.slice(8))}</span>${daily.length?`<span class="calendar-events">${daily.slice(0,3).map(i=>`<span class="calendar-event ${milestoneKind(i)?`event-${milestoneKind(i)}`:''} ${i.status==='done'?'event-done':''}" title="${esc(i.title)}">${esc(i.title)}</span>`).join('')}${daily.length>3?`<span class="calendar-more">+${daily.length-3} more</span>`:''}</span>`:''}</button>`;}).join('')}</div>${weekendSchedule(items,month,p.id,d,rollup)}${items.some(i=>!dateKey(i.due_date))?`<div class="undated"><h4>No date set</h4>${items.filter(i=>!dateKey(i.due_date)).map(i=>taskCard(i,d)).join('')}</div>`:''}`}</div></section>`;
+}
+function weekendSchedule(items,month,pid,d,rollup=false){
  const weekend=items.filter(i=>dateKey(i.due_date)?.startsWith(month)&&isWeekend(dateKey(i.due_date)));
  if(!weekend.length)return '';
- return `<details class="weekend-schedule"><summary>Weekend dates (${weekend.length})</summary><p class="calendar-hint">These records stay available outside the weekday grid.</p>${Object.entries(by(weekend.map(i=>({...i,day:dateKey(i.due_date)})),'day')).map(([key,rows])=>`<button class="text-button" data-calendar-date="${key}" data-project="${esc(pid)}">${esc(fmtDate(key))} · ${rows.length} card${rows.length===1?'':'s'} →</button>${rows.map(i=>taskCard(i,d)).join('')}`).join('')}</details>`;
+ return `<details class="weekend-schedule"><summary>Weekend dates (${weekend.length})</summary><p class="calendar-hint">These records stay available outside the weekday grid.</p>${Object.entries(by(weekend.map(i=>({...i,day:dateKey(i.due_date)})),'day')).map(([key,rows])=>`<button class="text-button" data-calendar-date="${key}" data-project="${esc(pid)}" ${rollup?'data-rollup="true"':''}>${esc(fmtDate(key))} · ${rows.length} card${rows.length===1?'':'s'} →</button>${rows.map(i=>taskCard(i,d)).join('')}`).join('')}</details>`;
 }
 function refreshDetail(){const dialog=document.querySelector('#detail');dialog.innerHTML=detail(derive().pm[state.open],derive());bind(dialog);}
-function openDay(pid,key){
- const d=derive(),p=d.pm[pid],items=(d.sch[pid]||[]).filter(i=>dateKey(i.due_date)===key),dialog=document.querySelector('#day-dialog');
- state.openDay={pid,key};dayFocus=document.activeElement;
+function openDay(pid,key,rollup=false){
+ const d=derive(),p=d.pm[pid],items=(rollup?timelineSteps(p,state.data.sched,d.pm):d.sch[pid]||[]).filter(i=>dateKey(i.due_date)===key),dialog=document.querySelector('#day-dialog');
+ state.openDay={pid,key,rollup};dayFocus=document.activeElement;
  dialog.innerHTML=`<div class="dialog-head"><span class="eyebrow">${esc(p.name)}</span><button class="close" data-close aria-label="Close date cards">×</button></div><h2 id="day-title">${esc(new Date(key+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}))}</h2><p class="day-summary">${items.length} schedule item${items.length===1?'':'s'}</p>${items.map(i=>taskCard(i,d)).join('')||'<p class="empty">Nothing scheduled on this date.</p>'}`;
  bind(dialog);
  dialog.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>{dialog.close();openDetail(b.dataset.open,b.dataset.targetItem);});
@@ -97,7 +103,7 @@ async function completeTask(id){
   const detailScroll=document.querySelector('#detail').scrollTop;
   render();
   if(projectId){openDetail(projectId,state.focusedTask,true);document.querySelector('#detail').scrollTop=detailScroll;}
-  if(day)openDay(day.pid,day.key);
+  if(day)openDay(day.pid,day.key,day.rollup);
  }catch{
   cards.forEach(c=>{c.querySelector('.task-complete-status').textContent='Could not confirm completion. This task has not been removed. Try again or use Comment.';c.querySelector('[data-complete-task]').disabled=false;});
  }finally{state.completing=false;}
@@ -134,7 +140,10 @@ function todayView(d){
 function filtered(d){return state.data.projects.filter(p=>!p.parent_id&&(state.status==='all'||state.status==='open'&&p.status!=='done'||state.status===p.status)&&(state.member==='all'||p.owner_id===state.member||(d.sch[p.id]||[]).some(i=>i.owner_id===state.member))&&(state.client==='all'||p.client_id===state.client)&&[p.name,p.description,d.cm[p.client_id]?.name,...(d.upd[p.id]||[]).map(u=>u.note)].join(' ').toLowerCase().includes(state.search.toLowerCase()));}
 const opt=(v,cur,t)=>`<option value="${esc(v)}" ${v===cur?'selected':''}>${esc(t)}</option>`;
 function filters(schedule=false){return `<div class="filters"><label class="search-label">Search<input id="search" type="search" placeholder="Find a project, client or update" value="${esc(state.search)}"></label><label>Team member<select id="member">${opt('all',state.member,'Everyone')}${state.data.members.map(m=>opt(m.id,state.member,m.name)).join('')}</select></label><label>Client<select id="client">${opt('all',state.client,'All clients')}${state.data.clients.map(c=>opt(c.id,state.client,c.name)).join('')}</select></label><label>Status<select id="status">${opt('open',state.status,schedule?'Active projects + finished steps':'Open')}${opt('all',state.status,'Including done')}${(schedule?['pending','in_progress','waiting','blocked','done']:['active','waiting','blocked','not_started','done']).map(s=>opt(s,state.status,label(s))).join('')}</select></label></div>`;}
-function projectsView(d){const list=filtered(d);const groups=by(list,'client_id');return `<div class="page-title"><h1>All projects</h1><p>Find the work, latest context and every project link.</p></div>${filters()}<p class="results">${list.length} projects shown</p>${list.length?Object.keys(groups).sort((a,b)=>(d.cm[a]?.name||'').localeCompare(d.cm[b]?.name||'')).map(c=>`<section><div class="section-heading"><h2>${esc(d.cm[c]?.name||'No client')} <span class="number">${groups[c].length}</span></h2></div><div class="project-grid">${groups[c].map(p=>projectCard(p,d)).join('')}</div></section>`).join(''):'<p class="empty">Nothing matches. Try another filter.</p>'}`;}
+function projectListing(p,d){
+ return `<details class="project-listing" data-project-listing="${esc(p.id)}" ${state.expandedProjects[p.id]?'open':''}><summary><span class="listing-name">${esc(shortName(p,d))}</span>${timeline(p,d)}<span class="pill ${esc(p.status)}">${esc(label(p.status))}</span><span class="listing-chevron" aria-hidden="true">▸</span></summary><div class="listing-content">${latest(p,d)}<div class="listing-actions"><button class="text-button" data-open="${esc(p.id)}">Details & links →</button>${commentButton(p)}</div>${projectSchedule(p,d,true)}</div></details>`;
+}
+function projectsView(d){const list=filtered(d);const groups=by(list,'client_id');return `<div class="page-title"><h1>All projects</h1><p>Find the work, latest context and every project link.</p></div>${filters()}<div class="project-expand-controls"><button data-expand-projects="true">Expand all</button><button data-expand-projects="false">Collapse all</button></div><p class="results">${list.length} projects shown</p>${list.length?Object.keys(groups).sort((a,b)=>(d.cm[a]?.name||'').localeCompare(d.cm[b]?.name||'')).map(c=>`<section><div class="section-heading"><h2>${esc(d.cm[c]?.name||'No client')} <span class="number">${groups[c].length}</span></h2></div><div class="project-listings">${groups[c].map(p=>projectListing(p,d)).join('')}</div></section>`).join(''):'<p class="empty">Nothing matches. Try another filter.</p>'}`;}
 function scheduleView(d){
  const xs=state.data.sched.filter(i=>(state.status==='all'||state.status==='open'&&!projectIsDone(d.pm[i.project_id],d.pm)||state.status!=='open'&&i.status===state.status)&&(state.member==='all'||i.owner_id===state.member)&&(state.client==='all'||d.pm[i.project_id]?.client_id===state.client)&&[i.title,i.notes,d.pm[i.project_id]?.name,d.cm[d.pm[i.project_id]?.client_id]?.name].join(' ').toLowerCase().includes(state.search.toLowerCase()));
  const groups=[['Previous dates',xs.filter(i=>i.due_date&&i.due_date<today())],['Upcoming dates',xs.filter(i=>i.due_date&&i.due_date>=today())],['No date set',xs.filter(i=>!i.due_date)]];
@@ -164,20 +173,22 @@ async function openComment(pid,iid){
  };
 }
 function bind(root){
+ root.querySelectorAll('[data-project-listing]').forEach(el=>el.ontoggle=()=>{state.expandedProjects[el.dataset.projectListing]=el.open;});
+ root.querySelectorAll('[data-expand-projects]').forEach(b=>b.onclick=()=>{const expanded=b.dataset.expandProjects==='true';root.querySelectorAll('[data-project-listing]').forEach(el=>{state.expandedProjects[el.dataset.projectListing]=expanded;el.open=expanded;});});
  root.querySelectorAll('[data-complete-task]').forEach(b=>b.onclick=()=>completeTask(b.dataset.completeTask));
  root.querySelectorAll('[data-complete]').forEach(b=>b.onclick=()=>completeProject(b.dataset.complete));
- root.querySelectorAll('[data-schedule-mode]').forEach(b=>b.onclick=()=>{state.scheduleModes[b.dataset.project]=b.dataset.scheduleMode;refreshDetail();document.querySelector(`[data-project="${b.dataset.project}"][data-schedule-mode="${b.dataset.scheduleMode}"]`)?.focus();});
+ root.querySelectorAll('[data-schedule-mode]').forEach(b=>b.onclick=()=>{state.scheduleModes[b.dataset.scheduleKey||b.dataset.project]=b.dataset.scheduleMode;if(b.closest('dialog'))refreshDetail();else render();document.querySelector(`[data-project="${b.dataset.project}"][data-schedule-mode="${b.dataset.scheduleMode}"]`)?.focus();});
  root.querySelectorAll('[role="tablist"]').forEach(list=>list.onkeydown=e=>{
   if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;
   const tabs=[...list.querySelectorAll('[role="tab"]')],index=tabs.indexOf(document.activeElement);if(index<0)return;
   e.preventDefault();tabs[e.key==='Home'?0:e.key==='End'?tabs.length-1:(index+(e.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length].click();
  });
- root.querySelectorAll('[data-month-step]').forEach(b=>b.onclick=()=>{state.calendarMonths[b.dataset.project]=shiftMonth(state.calendarMonths[b.dataset.project]||today().slice(0,7),Number(b.dataset.monthStep));refreshDetail();document.querySelector(`[data-project="${b.dataset.project}"][data-month-step="${b.dataset.monthStep}"]`)?.focus();});
- root.querySelectorAll('[data-calendar-date]').forEach(b=>b.onclick=()=>openDay(b.dataset.project,b.dataset.calendarDate));
+ root.querySelectorAll('[data-month-step]').forEach(b=>b.onclick=()=>{const key=b.dataset.scheduleKey||b.dataset.project;state.calendarMonths[key]=shiftMonth(state.calendarMonths[key]||today().slice(0,7),Number(b.dataset.monthStep));if(b.closest('dialog'))refreshDetail();else render();document.querySelector(`[data-project="${b.dataset.project}"][data-month-step="${b.dataset.monthStep}"]`)?.focus();});
+ root.querySelectorAll('[data-calendar-date]').forEach(b=>b.onclick=()=>openDay(b.dataset.project,b.dataset.calendarDate,b.dataset.rollup==='true'));
  root.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>openDetail(b.dataset.open,b.dataset.targetItem));
  root.querySelectorAll('[data-comment]').forEach(b=>b.onclick=()=>openComment(b.dataset.comment,b.dataset.item));
  root.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>b.closest('dialog').close());
- root.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{state.view=b.dataset.view;state.search='';state.member=b.hasAttribute('data-mine')?derive().aaron:'all';state.client='all';state.status='open';render();window.scrollTo({top:0});});
+ root.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{if(b.dataset.view==='projects'&&state.view!=='projects')state.expandedProjects={};state.view=b.dataset.view;state.search='';state.member=b.hasAttribute('data-mine')?derive().aaron:'all';state.client='all';state.status='open';render();window.scrollTo({top:0});});
 }
 function render(){
  const d=derive(), newest=state.data.updates[0]?.created_at;
