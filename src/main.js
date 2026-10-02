@@ -43,7 +43,7 @@ function commentButton(p,item){return `<button class="comment" data-comment="${e
 function latest(p,d,full=false){const u=d.upd[p.id]?.[0];return `<div class="update"><div class="caption">LATEST UPDATE <span>${u?esc(stamp(u.created_at))+' MT':''}</span></div><p class="${full?'':'clamp'}">${esc(u?.note || p.description || 'No update recorded yet.')}</p></div>`;}
 function timeline(p,d){
  const steps=timelineSteps(p,state.data.sched,d.pm);if(!steps.length)return '';
- return `<ol class="mini-timeline" aria-label="Steps for ${esc(p.name)}">${steps.map(i=>`<li class="timeline-step step-${timelineStepState(i)} kind-${milestoneKind(i)||'normal'}" title="${esc(i.title)} · ${esc(label(i.status))}${i.due_date?' · '+esc(fmtDate(i.due_date)):''}" aria-label="${esc(i.title)}: ${esc(label(i.status))}${milestoneKind(i)?', '+milestoneKind(i):''}"><span class="step-circle" aria-hidden="true"></span></li>`).join('')}</ol>`;
+ return `<ol class="mini-timeline" aria-label="Steps for ${esc(p.name)}">${steps.map(i=>`<li class="timeline-step step-${timelineStepState(i)} kind-${milestoneKind(i)||'normal'}" title="${esc(i.title)} · ${esc(label(i.status))}${i.due_date?' · '+esc(fmtDate(i.due_date)):''}" aria-label="${esc(i.title)}: ${esc(label(i.status))}${milestoneKind(i)?', '+milestoneKind(i):''}"><span class="step-circle" aria-hidden="true"></span><span class="step-date" aria-hidden="true">${dateKey(i.due_date)?`${Number(dateKey(i.due_date).slice(5,7))}/${Number(dateKey(i.due_date).slice(8,10))}`:'TBD'}</span></li>`).join('')}</ol>`;
 }
 function projectCard(p,d){
  const next=(d.sch[p.id]||[]).filter(i=>i.status!=='done' && i.due_date && i.due_date>=today())[0];

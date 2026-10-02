@@ -63,3 +63,8 @@
 .step-done .step-circle{background:var(--finished-color)}
 .task-card.has-current-step,.project-card.has-current-step{background:#B9F6E2;border-color:#51E8B7}
 .task-card[data-task-highlight="true"]{outline-color:#51E8B7}
+/* Month/day sits under each circle without moving the connecting line. */
+.mini-timeline{min-height:49px;padding-bottom:4px}
+.timeline-step{height:40px;flex-basis:40px;min-width:40px;align-items:flex-start;flex-direction:column;justify-content:flex-start}
+.step-circle{margin-top:1px}.timeline-step:not(:last-child)::after{top:8.5px}
+.step-date{font-size:10px;font-weight:500;line-height:1.2;margin-top:5px;white-space:nowrap;width:30px;text-align:center;transform:translateX(-6px);color:#241F20}
