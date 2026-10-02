@@ -40,3 +40,13 @@
 .step-done .step-circle{background:#182e28;border-color:#182e28}.step-current .step-circle{border:3px solid #008a86;box-shadow:0 0 0 2px #fff}
 .task-card.has-current-step,.project-card.has-current-step{background:#d1f1ee;border-color:#008a86}
 .task-card.has-current-step{border-left-color:#008a86}
+/* Finished steps remain in sequence, compact by default and expandable. */
+.finished-task{background:#eef0ee;border:1px solid #cbd1cd;border-radius:10px;margin:0 0 12px;color:#63716b;min-width:0}
+.finished-task summary{display:flex;align-items:center;gap:10px;cursor:pointer;padding:13px 14px;list-style:none;font-size:13px;min-height:48px}
+.finished-task summary::after{content:"▸";margin-left:auto}.finished-task[open] summary::after{content:"▾"}
+.finished-title{flex:1;min-width:0;overflow-wrap:anywhere}.finished-check{font-weight:750}.finished-date{font-size:11px}.finished-label{font-size:11px;font-weight:650;padding:3px 6px;background:#dce1dd;border-radius:4px}
+.task-card.is-finished{background:#eef0ee!important;border-color:#cbd1cd!important;color:#63716b}
+.finished-task .task-card{margin:0;border:0;border-radius:0 0 10px 10px;padding-top:4px}
+.finished-task .task-context,.finished-task .owner,.finished-task .task-note{color:#63716b}
+.calendar-event.event-done{background:#e5e8e5;color:#6b766f;border-color:#9ba59e;opacity:.85;text-decoration:line-through}
+.task-grid>.finished-task{align-self:start;margin-bottom:0}
