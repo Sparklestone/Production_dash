@@ -68,3 +68,12 @@
 .timeline-step{height:40px;flex-basis:40px;min-width:40px;align-items:flex-start;flex-direction:column;justify-content:flex-start}
 .step-circle{margin-top:1px}.timeline-step:not(:last-child)::after{top:8.5px}
 .step-date{font-size:10px;font-weight:500;line-height:1.2;margin-top:5px;white-space:nowrap;width:30px;text-align:center;transform:translateX(-6px);color:#241F20}
+
+/* Filled upcoming dots; only completed steps use the faded treatment. */
+.step-circle{background:var(--step-color);border:0}
+.step-current .step-circle{background:var(--step-color);border:3px solid #241F2066}
+.step-done .step-circle{background:var(--finished-color);border:3px solid #241F2066}
+.timeline-step:not(:last-child)::after{height:2px;top:9px;background:var(--ink);left:18px}
+.timeline-step:not(.step-current):not(.step-done) .step-circle{background:var(--step-color);border:0}
+.timeline-step.step-done:has(+ .step-done)::after{height:6px;top:7px;background:var(--finished-color);border:2px solid #241F2066;left:16px}
+.mini-timeline .timeline-step.step-represented .step-circle{background:var(--teal)}
