@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { dateKey, groupAssignments, projectIsDone, clientMilestone, monthCells, shiftMonth } from '../src/schedule.js';
+import { dateKey, groupAssignments, projectIsDone, clientMilestone, milestoneKind, isWeekend, monthCells, shiftMonth } from '../src/schedule.js';
 test('calendar keeps date-only values stable and handles leap years',()=>{
  assert.equal(dateKey('2026-10-05T00:00:00Z'),'2026-10-05');
  assert.equal(dateKey(null),null);
- assert.equal(monthCells('2024-02').filter(Boolean).length,29);
- assert.equal(monthCells('2026-10').indexOf('2026-10-01'),4);
+ assert.equal(monthCells('2024-02').filter(Boolean).length,21);
+ assert.equal(monthCells('2026-10').indexOf('2026-10-01'),3);
  assert.equal(shiftMonth('2026-12',1),'2027-01');
  assert.equal(shiftMonth('2026-01',-1),'2025-12');
 });
@@ -21,4 +21,16 @@ test('client milestone metadata wins; title fallback avoids background notes',()
  assert.equal(clientMilestone({title:'Internal proof review',notes:'Client meeting next week'}),false);
  assert.equal(clientMilestone({title:'Internal proof review',milestone_type:'client_delivery'}),true);
  assert.equal(clientMilestone({title:'Client meeting',milestone_type:'internal'}),false);
+});
+
+test('client review and release have distinct classes',()=>{
+ for(const title of ['Client review meeting','Meeting with the client','Client presentation'])assert.equal(milestoneKind({title}),'review');
+ for(const title of ['Release','Send final files to client','Client delivery','Release approved files'])assert.equal(milestoneKind({title}),'release');
+ assert.equal(milestoneKind({title:'Client review',milestone_type:'client_delivery'}),'release');
+});
+test('weekday grid excludes weekends and aligns months that start on a weekend',()=>{
+ assert.equal(isWeekend('2026-10-03'),true);
+ assert.equal(isWeekend('2026-10-05'),false);
+ assert.equal(monthCells('2026-08')[0],'2026-08-03');
+ for(const month of ['2026-10','2026-11','2026-08'])assert.ok(monthCells(month).filter(Boolean).every(key=>!isWeekend(key)));
 });

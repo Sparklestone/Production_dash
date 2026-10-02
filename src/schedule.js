@@ -28,20 +28,28 @@ export function groupAssignments(items, projects) {
  }
  return [...groups.values()];
 }
-export function clientMilestone(item) {
- // Explicit metadata wins when a feed supplies it. Otherwise use the title only:
- // notes often mention a client in background, rather than describe the milestone.
+export function milestoneKind(item) {
+ // Explicit metadata wins. Background notes do not classify a milestone.
  const kind = item.milestone_type || item.item_type || item.type;
- if (['client_meeting', 'client_delivery', 'client_handoff'].includes(kind)) return true;
- if (kind) return false;
+ if (['client_meeting', 'client_review', 'client_presentation'].includes(kind)) return 'review';
+ if (['release', 'client_release', 'client_delivery', 'client_handoff'].includes(kind)) return 'release';
+ if (kind) return null;
  const title = item.title || '';
- return /\bclient\b.{0,40}\b(meeting|review|presentation|call|delivery|handoff)\b|\b(meeting|review|presentation|call)\b.{0,40}\b(with|to)\s+(the\s+)?client\b|\b(send|deliver|submit|present|share|release|handoff|hand\s+off)\b.{0,60}\b(to|with)\s+(the\s+)?client\b|\bfiles?\s+to\s+(the\s+)?client\b/i.test(title);
+ if (/\brelease\b|\bclient\b.{0,40}\b(delivery|handoff)\b|\b(send|deliver|submit|share|handoff|hand\s+off)\b.{0,60}\b(to|with)\s+(the\s+)?client\b|\bfiles?\s+to\s+(the\s+)?client\b/i.test(title)) return 'release';
+ if (/\bclient\b.{0,40}\b(meeting|review|presentation|call)\b|\b(meeting|review|presentation|call)\b.{0,40}\b(with|to)\s+(the\s+)?client\b/i.test(title)) return 'review';
+ return null;
+}
+export const clientMilestone = item => milestoneKind(item) !== null;
+export function isWeekend(key) {
+ const day = new Date(key + 'T12:00:00Z').getUTCDay();
+ return day === 0 || day === 6;
 }
 export function monthCells(month) {
  const [year, m] = month.split('-').map(Number);
- const first = new Date(Date.UTC(year, m - 1, 1));
  const length = new Date(Date.UTC(year, m, 0)).getUTCDate();
- return [...Array(first.getUTCDay()).fill(null), ...Array.from({ length }, (_, i) => `${month}-${String(i + 1).padStart(2, '0')}`)];
+ const dates = Array.from({ length }, (_, i) => `${month}-${String(i + 1).padStart(2, '0')}`).filter(key => !isWeekend(key));
+ const offset = (new Date(dates[0] + 'T12:00:00Z').getUTCDay() + 6) % 7;
+ return [...Array(offset).fill(null), ...dates];
 }
 export function shiftMonth(month, delta) {
  const [year, m] = month.split('-').map(Number);
