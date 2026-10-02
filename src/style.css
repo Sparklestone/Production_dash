@@ -9,3 +9,25 @@
 /* Client reviews and releases use separate colors and written labels. */
 .task-card.milestone-review{background:#edf4ff;border-color:#8baee0;border-left-color:#3267ab}.task-card.milestone-release{background:#f5efff;border-color:#ba9cdf;border-left-color:#7950aa}.milestone-release .client-label{background:#e8d9fa;color:#603889}.calendar-grid{grid-template-columns:repeat(5,minmax(0,1fr));align-items:stretch}.calendar-day{align-items:stretch;text-align:left;min-height:94px;padding:8px 5px}.calendar-day>span:first-child{padding-left:3px}.calendar-events{display:flex;flex-direction:column;gap:4px;margin-top:5px}.calendar-event{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;overflow-wrap:anywhere;font-size:11px;line-height:1.3;font-weight:500;background:#eef2ec;border-left:3px solid #a6b5a8;padding:5px 4px;border-radius:4px}.event-review{background:#dce9ff;border-color:#3267ab;color:#244f87}.event-release{background:#ebddfc;border-color:#7950aa;color:#603889}.calendar-more{font-size:11px;color:var(--mut);padding:3px}.calendar-legend{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;font-size:11px}.calendar-legend span{padding:3px 8px;border-radius:4px;border-left:3px solid}.legend-review{background:#dce9ff;color:#244f87;border-color:#3267ab!important}.legend-release{background:#ebddfc;color:#603889;border-color:#7950aa!important}.weekend-schedule{margin:20px 0;padding:12px;border:1px solid var(--line);border-radius:8px}.weekend-schedule summary{cursor:pointer;font-size:14px;color:var(--mut)}
 @media(max-width:600px){.calendar-day{min-height:76px;padding:5px 2px}.calendar-event{font-size:10px;padding:4px 2px;border-left-width:2px;line-height:1.3}.calendar-grid{gap:3px}.calendar-more{font-size:10px;padding:2px}.calendar-legend{font-size:10px;gap:6px}}
+/* Recognizable milestone colors and task-scoped completion actions. */
+.task-card.milestone-review{background:#d3e5ff;border-color:#6e98d4;border-left-color:#245ba0}
+.task-card.milestone-release{background:#e6d4fa;border-color:#a882d1;border-left-color:#70419c}
+.client-label{font-size:13px;letter-spacing:.07em;padding:6px 10px;background:#245ba0;color:#fff}
+.milestone-release .client-label{background:#70419c;color:#fff}
+.calendar-legend{font-size:12px;gap:8px;margin:16px 0}
+.calendar-legend span{padding:7px 10px;font-weight:650}
+.legend-review,.event-review{background:#d3e5ff;color:#153d72;border-color:#245ba0!important}
+.legend-release,.event-release{background:#e6d4fa;color:#48236c;border-color:#70419c!important}
+.next-milestone{margin:14px 0 0;padding:10px 12px;border-radius:8px;border-left:4px solid;font-size:12px;line-height:1.5}
+.next-milestone span{display:block;margin-top:3px;font-size:13px;font-weight:500}
+.next-milestone.milestone-review{background:#d3e5ff;color:#153d72;border-color:#245ba0}
+.next-milestone.milestone-release{background:#e6d4fa;color:#48236c;border-color:#70419c}
+.task-card footer{gap:8px;margin-top:16px}.task-done{font-size:13px}
+.task-complete-status:empty{display:none}.task-complete-status{font-size:13px;margin-top:12px}
+#detail>.dialog-head{position:sticky;top:-28px;background:#fff;z-index:2;padding:12px 0;margin-top:-12px;border-bottom:1px solid var(--line)}
+#detail>.dialog-head .eyebrow{min-width:0;overflow-wrap:anywhere}
+#detail>.dialog-head .complete-button{flex-shrink:0;font-size:13px;padding:8px 12px}
+@media(max-width:600px){#detail>.dialog-head{top:-20px;gap:8px}#detail>.dialog-head .eyebrow{font-size:10px}.task-card footer{align-items:stretch}.task-card .task-done{flex:1}}
+@media(max-width:600px){.task-card .task-done{flex:1 0 100%;order:-1;white-space:nowrap}.task-card footer .comment{margin-left:auto}}
+/* Focus the exact task requested from Today or Schedule, distinct from milestones. */
+.task-card[data-task-highlight="true"]{outline:3px solid #008a86;outline-offset:3px;box-shadow:0 0 0 6px #008a8618;scroll-margin-top:90px}

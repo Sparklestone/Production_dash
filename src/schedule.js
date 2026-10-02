@@ -55,3 +55,17 @@ export function shiftMonth(month, delta) {
  const [year, m] = month.split('-').map(Number);
  return new Date(Date.UTC(year, m - 1 + delta, 1)).toISOString().slice(0, 7);
 }
+
+// Only future open milestones, including descendants, qualify for the next badge.
+export function nextMilestone(project, items, projects, todayKey) {
+ const belongs = item => {
+  let current = projects[item.project_id];const seen = new Set();
+  while(current&&!seen.has(current.id)) {
+   if(current.id===project.id)return true;
+   seen.add(current.id);current=projects[current.parent_id];
+  }
+  return false;
+ };
+ return items.filter(i=>i.status!=='done'&&!projectIsDone(projects[i.project_id],projects)&&belongs(i)&&milestoneKind(i)&&dateKey(i.due_date)>=todayKey)
+  .sort((a,b)=>dateKey(a.due_date).localeCompare(dateKey(b.due_date))||a.title.localeCompare(b.title))[0]||null;
+}

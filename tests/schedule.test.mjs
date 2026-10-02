@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { dateKey, groupAssignments, projectIsDone, clientMilestone, milestoneKind, isWeekend, monthCells, shiftMonth } from '../src/schedule.js';
+import { dateKey, groupAssignments, projectIsDone, clientMilestone, milestoneKind, isWeekend, monthCells, shiftMonth, nextMilestone } from '../src/schedule.js';
 test('calendar keeps date-only values stable and handles leap years',()=>{
  assert.equal(dateKey('2026-10-05T00:00:00Z'),'2026-10-05');
  assert.equal(dateKey(null),null);
@@ -39,4 +39,19 @@ test('approval milestones are reviews unless explicit metadata says otherwise',(
  for(const title of ['Client approval','Vehicle deck final approval','Approval'])assert.equal(milestoneKind({title}),'review',title);
  assert.equal(milestoneKind({title:'Client approval',milestone_type:'internal'}),null);
  assert.equal(milestoneKind({title:'Approval',milestone_type:'client_delivery'}),'release');
+});
+
+
+test('next milestone badge selects dated open descendant milestones, not unrelated or completed work',()=>{
+ const projects={p:{id:'p'},s:{id:'s',parent_id:'p'},x:{id:'x'}};
+ const items=[{id:'normal',project_id:'p',title:'Internal proof',due_date:'2026-10-02'},
+ {id:'past',project_id:'p',title:'Client review',due_date:'2026-09-30'},
+ {id:'done',project_id:'p',title:'Client approval',due_date:'2026-10-02',status:'done'},
+ {id:'other',project_id:'x',title:'Release',due_date:'2026-10-02'},
+ {id:'undated',project_id:'p',title:'Release'},
+ {id:'release',project_id:'p',title:'Release',due_date:'2026-10-07'},
+ {id:'review',project_id:'s',title:'Client approval',due_date:'2026-10-05'}];
+ assert.equal(nextMilestone(projects.p,items,projects,'2026-10-02').id,'review');
+ projects.s.status='done';assert.equal(nextMilestone(projects.p,items,projects,'2026-10-02').id,'release');
+ projects.p.status='done';assert.equal(nextMilestone(projects.p,items,projects,'2026-10-02'),null);
 });
