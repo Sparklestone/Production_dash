@@ -34,8 +34,8 @@
 /* Compact project step strip: completed black, current teal, milestone outlines. */
 .mini-timeline{display:flex;align-items:center;list-style:none;padding:7px 2px;margin:0 0 18px;overflow-x:auto;max-width:100%;min-height:28px}
 .timeline-step{position:relative;display:flex;align-items:center;flex:1 0 28px;min-width:28px;max-width:56px;height:20px}
-.timeline-step:not(:last-child)::after{content:"";position:absolute;height:2px;left:14px;right:0;top:9px;background:#241F2066}
-.step-circle{z-index:1;display:block;width:16px;height:16px;border:2px solid #241F2066;border-radius:50%;background:#fff;flex-shrink:0}
+.timeline-step:not(:last-child)::after{content:"";position:absolute;height:2px;left:14px;right:0;top:9px;background:var(--screened-ink)}
+.step-circle{z-index:1;display:block;width:16px;height:16px;border:2px solid var(--screened-ink);border-radius:50%;background:#fff;flex-shrink:0}
 .step-review .step-circle{border-color:#F35600}.step-release .step-circle{border-color:#E18FFF}
 .step-done .step-circle{background:#241F20;border-color:#241F20}.step-current .step-circle{border:3px solid #51E8B7;box-shadow:0 0 0 2px #fff}
 .task-card.has-current-step,.project-card.has-current-step{background:#B9F6E2;border-color:#51E8B7}
@@ -54,10 +54,10 @@
 /* Aaron's revised palette and timeline state encoding. */
 :root{--ink:#241F20;--review:#F35600;--release:#E18FFF;--teal:#51E8B7}
 .client-label,.milestone-release .client-label{color:var(--ink)}
-.step-circle{width:18px;height:18px;border:3px solid #241F2066;background:#fff;box-shadow:none}
-.step-review .step-circle,.step-release .step-circle,.step-current .step-circle,.step-done .step-circle{border:3px solid #241F2066;box-shadow:none}
-.timeline-step:not(:last-child)::after{height:3px;top:8.5px;background:#241F2066;left:16px}
-.timeline-step{--step-color:#241F20;--finished-color:#241F2066}
+.step-circle{width:18px;height:18px;border:3px solid var(--screened-ink);background:#fff;box-shadow:none}
+.step-review .step-circle,.step-release .step-circle,.step-current .step-circle,.step-done .step-circle{border:3px solid var(--screened-ink);box-shadow:none}
+.timeline-step:not(:last-child)::after{height:3px;top:8.5px;background:var(--screened-ink);left:16px}
+.timeline-step{--step-color:#241F20;--finished-color:var(--screened-ink)}
 .kind-review{--step-color:#F35600;--finished-color:#F3560066}.kind-release{--step-color:#E18FFF;--finished-color:#E18FFF66}
 .step-current .step-circle{background:var(--step-color)}
 .step-done .step-circle{background:var(--finished-color)}
@@ -71,11 +71,11 @@
 
 /* Filled upcoming dots; only completed steps use the faded treatment. */
 .step-circle{background:var(--step-color);border:0}
-.step-current .step-circle{background:var(--step-color);border:3px solid #241F2066}
-.step-done .step-circle{background:var(--finished-color);border:3px solid #241F2066}
+.step-current .step-circle{background:var(--step-color);border:3px solid var(--screened-ink)}
+.step-done .step-circle{background:var(--finished-color);border:3px solid var(--screened-ink)}
 .timeline-step:not(:last-child)::after{height:2px;top:9px;background:var(--ink);left:18px}
 .timeline-step:not(.step-current):not(.step-done) .step-circle{background:var(--step-color);border:0}
-.timeline-step.step-done:has(+ .step-done)::after{height:8px;top:6px;background:#241F2066;border:0;left:9px;right:-9px;z-index:0}
+.timeline-step.step-done:has(+ .step-done)::after{height:8px;top:6px;background:var(--screened-ink);border:0;left:9px;right:-9px;z-index:0}
 .mini-timeline .timeline-step.step-represented .step-circle{background:var(--teal)}
 
 .project-expand-controls{display:flex;gap:8px;margin:14px 0}.project-expand-controls button{border:1px solid #ccc;border-radius:7px;background:white;padding:9px 14px;color:var(--ink)}
@@ -85,3 +85,11 @@
 .listing-content .page-step-group>.task-grid{grid-template-columns:repeat(auto-fit,minmax(280px,1fr));align-items:start}.listing-content .page-step-group>.task-grid>.finished-task{align-self:start}@media(max-width:650px){.listing-content .page-step-group>.task-grid{grid-template-columns:minmax(0,1fr)}}
 
 .mini-timeline{isolation:isolate}.step-circle{position:relative;z-index:1}
+
+/* Opaque equivalents of 40% ink on each timeline surface. */
+:root{--screened-ink:#A7A5A6}
+.task-card,.project-card,.project-listing,.subproject{--screened-ink:#A7A5A6}
+.task-card.milestone-review{--screened-ink:#A69187}
+.task-card.milestone-release{--screened-ink:#A08AA6}
+.task-card.has-current-step,.project-card.has-current-step{--screened-ink:#7DA094}
+.task-card.is-finished{--screened-ink:#9D9C9C}
