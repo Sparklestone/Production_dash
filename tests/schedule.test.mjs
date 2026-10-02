@@ -34,3 +34,9 @@ test('weekday grid excludes weekends and aligns months that start on a weekend',
  assert.equal(monthCells('2026-08')[0],'2026-08-03');
  for(const month of ['2026-10','2026-11','2026-08'])assert.ok(monthCells(month).filter(Boolean).every(key=>!isWeekend(key)));
 });
+
+test('approval milestones are reviews unless explicit metadata says otherwise',()=>{
+ for(const title of ['Client approval','Vehicle deck final approval','Approval'])assert.equal(milestoneKind({title}),'review',title);
+ assert.equal(milestoneKind({title:'Client approval',milestone_type:'internal'}),null);
+ assert.equal(milestoneKind({title:'Approval',milestone_type:'client_delivery'}),'release');
+});

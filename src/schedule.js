@@ -36,7 +36,7 @@ export function milestoneKind(item) {
  if (kind) return null;
  const title = item.title || '';
  if (/\brelease\b|\bclient\b.{0,40}\b(delivery|handoff)\b|\b(send|deliver|submit|share|handoff|hand\s+off)\b.{0,60}\b(to|with)\s+(the\s+)?client\b|\bfiles?\s+to\s+(the\s+)?client\b/i.test(title)) return 'release';
- if (/\bclient\b.{0,40}\b(meeting|review|presentation|call)\b|\b(meeting|review|presentation|call)\b.{0,40}\b(with|to)\s+(the\s+)?client\b/i.test(title)) return 'review';
+ if (/\bapproval\b|\bclient\b.{0,40}\b(meeting|review|presentation|call)\b|\b(meeting|review|presentation|call)\b.{0,40}\b(with|to)\s+(the\s+)?client\b/i.test(title)) return 'review';
  return null;
 }
 export const clientMilestone = item => milestoneKind(item) !== null;
