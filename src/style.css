@@ -117,3 +117,7 @@
 [data-card-open]{cursor:pointer}
 [data-card-open]:focus-visible{outline:3px solid #51E8B7;outline-offset:3px}
 [data-card-open] textarea,[data-card-open] input{cursor:text}
+/* Compact chips share task-card type/status colors and the left accent. */
+.needs-strip>.needs-item.task-card{min-height:82px;margin:0;padding:10px 12px;border-radius:8px;box-shadow:none}
+.compact-task .task-step-name{font-size:13px;font-weight:600;line-height:1.4;margin-top:3px}
+.needs-item .chip-step{font-size:11px;font-weight:600;color:#241F20}
