@@ -1,0 +1,2 @@
+import {dateKey,projectIsDone} from './schedule.js';
+export function workloadColumns(members,items,projects){const open=items.filter(i=>i.status!=='done'&&!projectIsDone(projects[i.project_id],projects));return members.filter(m=>m.active!==false&&m.name.trim().replace(/\s+/g,' ').toLowerCase()!=='chris jaren').map(m=>({...m,items:open.filter(i=>i.owner_id===m.id).sort((a,b)=>(dateKey(a.due_date)||'9999').localeCompare(dateKey(b.due_date)||'9999')||a.title.localeCompare(b.title)||a.id.localeCompare(b.id))}));}

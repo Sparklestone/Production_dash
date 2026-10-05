@@ -1,0 +1,1 @@
+export function stuckPrerequisites(item,items,edges){if(!item||item.status==='done')return [];const byId=new Map(items.map(i=>[i.id,i]));return [...new Set(edges.filter(e=>e.downstream_id===item.id&&e.upstream_id!==item.id).map(e=>e.upstream_id))].map(id=>byId.get(id)).filter(i=>i&&i.status!=='done');}
