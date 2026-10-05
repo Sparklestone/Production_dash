@@ -17,3 +17,5 @@ export function matchUpdate(text,items,projects){
 export function lateDependencies(items,edges,today){const byId=Object.fromEntries(items.map(i=>[i.id,i]));const result={};for(const edge of edges){const upstream=byId[edge.upstream_id],downstream=byId[edge.downstream_id];if(upstream&&downstream&&upstream.status!=='done'&&downstream.status!=='done'&&dateKey(upstream.due_date)&&dateKey(upstream.due_date)<today)(result[downstream.id]||=[]).push(upstream);}return result;}
 
 export function recordedDay(value){if(!value)return null;if(/^\d{4}-\d{2}-\d{2}$/.test(value))return value;const date=new Date(value);if(Number.isNaN(date.getTime()))return null;return new Intl.DateTimeFormat('en-CA',{timeZone:'America/Denver',year:'numeric',month:'2-digit',day:'2-digit'}).format(date);}
+
+export function normalizeDependencies(rows){return rows.filter(x=>x.item_id&&x.depends_on_id).map(x=>({downstream_id:x.item_id,upstream_id:x.depends_on_id}));}

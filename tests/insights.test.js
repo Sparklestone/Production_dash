@@ -1,8 +1,10 @@
 import {test} from 'node:test';import assert from 'node:assert/strict';
-import {shiftDate,weekWindow,needsAttention,weeklyCounts,matchUpdate,lateDependencies,recordedDay} from '../src/insights.js';
+import {shiftDate,weekWindow,needsAttention,weeklyCounts,matchUpdate,lateDependencies,recordedDay,normalizeDependencies} from '../src/insights.js';
 test('week and two-day bounds are computed across month/year edges',()=>{assert.equal(shiftDate('2026-12-31',2),'2027-01-02');assert.deepEqual(weekWindow('2026-10-04'),{start:'2026-09-28',end:'2026-10-04'});});
 test('attention excludes done and uses explicit status/owner/date reasons',()=>{const p={p:{id:'p',status:'active'}};const rows=[{id:'a',project_id:'p',owner_id:'me',status:'blocked'},{id:'b',project_id:'p',status:'pending',due_date:'2026-10-06'},{id:'c',project_id:'p',status:'done',due_date:'2026-10-04'}];assert.equal(needsAttention(rows,p,'2026-10-04','me').length,2);assert.deepEqual(weeklyCounts(rows,p,'2026-10-04'),{open:2,week:0,past:0});});
 test('matching keeps ambiguity visible and never chooses a status mutation',()=>{const p={p:{name:'CareCredit'}};const rows=[{id:'1',project_id:'p',title:'Proofs'},{id:'2',project_id:'p',title:'Proofs final'}];assert.equal(matchUpdate('CareCredit proofs done',rows,p).length,2);assert.equal(matchUpdate('done',rows,p).length,0);});
 test('risk requires an explicit late unfinished upstream edge',()=>{const rows=[{id:'a',status:'pending',due_date:'2026-10-01'},{id:'b',status:'pending',due_date:'2026-10-04'},{id:'c',status:'done',due_date:'2026-10-01'}];assert.deepEqual(Object.keys(lateDependencies(rows,[{upstream_id:'a',downstream_id:'b'},{upstream_id:'c',downstream_id:'b'}],'2026-10-04')),['b']);assert.deepEqual(lateDependencies(rows,[],'2026-10-04'),{});});
 
 test('recap timestamps use Mountain calendar day',()=>{assert.equal(recordedDay('2026-10-05T01:00:00Z'),'2026-10-04');assert.equal(recordedDay('bad'),null);});
+
+test('live schema direction means item depends on upstream',()=>{assert.deepEqual(normalizeDependencies([{item_id:'b',depends_on_id:'a'}]),[{downstream_id:'b',upstream_id:'a'}]);});
