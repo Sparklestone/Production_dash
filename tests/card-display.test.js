@@ -1,0 +1,2 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {parentheticalName,joinedNames} from '../src/card-display.js';
+test('slash names use parentheses and already converted names are stable',()=>{assert.equal(parentheticalName('Billings / One Sky'),'Billings (One Sky)');assert.equal(parentheticalName('Billings (One Sky)'),'Billings (One Sky)');assert.equal(parentheticalName('A / B / C'),'A (B; C)');assert.equal(joinedNames('argenx','Brand Training'),'argenx (Brand Training)');});

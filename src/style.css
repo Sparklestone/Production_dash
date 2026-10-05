@@ -114,3 +114,6 @@
 [data-task-section]>.section-heading h2{margin:0}
 [data-task-section]>.needs-strip{max-width:100%;padding-bottom:8px}
 [data-task-section] .needs-item{flex-shrink:0;white-space:normal}
+[data-card-open]{cursor:pointer}
+[data-card-open]:focus-visible{outline:3px solid #51E8B7;outline-offset:3px}
+[data-card-open] textarea,[data-card-open] input{cursor:text}
