@@ -103,3 +103,6 @@
 @media(max-width:650px){.task-grid,.focus-section .work-bucket>.task-grid,.listing-content .page-step-group>.task-grid{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}.compact-task{min-height:210px}.needs-you .section-heading p{max-width:100%}nav{gap:8px}nav button{font-size:13px;min-width:50px}}
 .quick-entry textarea{white-space:pre;overflow-wrap:normal}.compact-task{min-height:230px}.needs-strip .needs-item{min-height:82px}
 .dependency-note{font-size:11px;color:#6A6466;margin-bottom:14px}
+
+/* Step dots are always visible on task cards, never hidden behind Context. */
+.compact-task>.mini-timeline{margin:3px 0 8px;min-height:45px;width:100%;flex-shrink:0}
