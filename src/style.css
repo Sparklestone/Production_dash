@@ -139,3 +139,9 @@
 textarea,.quick-entry textarea,.card-questions textarea,#comment-form textarea{min-width:0;max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;overflow-x:hidden;overflow-y:hidden;max-height:none;resize:none;}
 .quick-entry textarea{flex:1;}
 .quick-entry button{flex-shrink:0;}
+
+.timeline-step-target{position:relative;z-index:2;display:flex;align-items:flex-start;justify-content:flex-start;flex-shrink:0;width:32px;height:30px;min-height:30px;padding:0;border:0;border-radius:4px;background:transparent!important;}
+.timeline-step-target .step-circle{pointer-events:none;}
+.timeline-step-target:hover .step-circle{box-shadow:0 0 0 3px #241F2020;}
+.timeline-step .step-date{position:absolute;top:23px;left:0;pointer-events:none;}
+.timeline-step-preview{position:fixed;z-index:10000;max-width:min(300px,calc(100vw - 16px));padding:8px 11px;border:1px solid #d9e1d9;border-radius:7px;background:#241F20;color:#fff;box-shadow:0 4px 14px #241F2025;font-size:12px;line-height:1.45;overflow-wrap:anywhere;pointer-events:none;}

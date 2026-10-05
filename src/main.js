@@ -71,7 +71,7 @@ function commentButton(p,item){return `<button class="comment" data-comment="${e
 function latest(p,d,full=false){const u=d.upd[p.id]?.[0];return `<div class="update"><div class="caption">LATEST UPDATE <span>${u?esc(stamp(u.created_at))+' MT':''}</span></div><p class="${full?'':'clamp'}">${esc(u?.note || p.description || 'No update recorded yet.')}</p></div>`;}
 function timeline(p,d,representedItem=null,representedProject=null){
  const steps=timelineSteps(p,state.data.sched,d.pm);if(!steps.length)return '';
- return `<ol class="mini-timeline" aria-label="Steps for ${esc(p.name)}">${steps.map(i=>`<li class="timeline-step step-${timelineStepState(i)} kind-${milestoneKind(i)||'normal'}${(representedItem?.id===i.id||representedProject?.id===i.project_id)?' step-represented':''}" title="${esc(i.title)} · ${esc(label(i.status))}${i.due_date?' · '+esc(fmtDate(i.due_date)):''}" aria-label="${esc(i.title)}: ${esc(label(i.status))}${milestoneKind(i)?', '+milestoneKind(i):''}"><span class="step-circle" aria-hidden="true"></span><span class="step-date" aria-hidden="true">${dateKey(i.due_date)?`${Number(dateKey(i.due_date).slice(5,7))}/${Number(dateKey(i.due_date).slice(8,10))}`:'TBD'}</span></li>`).join('')}</ol>`;
+ return `<ol class="mini-timeline" aria-label="Steps for ${esc(p.name)}">${steps.map(i=>`<li class="timeline-step step-${timelineStepState(i)} kind-${milestoneKind(i)||'normal'}${(representedItem?.id===i.id||representedProject?.id===i.project_id)?' step-represented':''}" ><button class="timeline-step-target" data-timeline-project="${esc(i.project_id)}" data-timeline-step="${esc(i.id)}" data-step-name="${esc(i.title)}" aria-label="Open step: ${esc(i.title)}"><span class="step-circle" aria-hidden="true"></span></button><span class="step-date" aria-hidden="true">${dateKey(i.due_date)?`${Number(dateKey(i.due_date).slice(5,7))}/${Number(dateKey(i.due_date).slice(8,10))}`:'TBD'}</span></li>`).join('')}</ol>`;
 }
 function projectCard(p,d){
  const next=(d.sch[p.id]||[]).filter(i=>i.status!=='done' && i.due_date && i.due_date>=today())[0];
@@ -242,7 +242,23 @@ function growVisibleTextFields(){document.querySelectorAll('textarea').forEach(g
 document.addEventListener('input',e=>{if(e.target.matches('textarea')){growTextField(e.target);requestAnimationFrame(growVisibleTextFields);}},true);
 document.addEventListener('toggle',()=>requestAnimationFrame(growVisibleTextFields),true);
 window.addEventListener('resize',()=>requestAnimationFrame(growVisibleTextFields));
+function hideStepPreview(){document.querySelectorAll('.timeline-step-preview').forEach(el=>el.remove());}
+function showStepPreview(button){
+ hideStepPreview();const preview=document.createElement('div');preview.className='timeline-step-preview';preview.textContent=button.dataset.stepName;preview.setAttribute('role','tooltip');
+ (button.closest('dialog[open]')||document.body).append(preview);
+ const box=button.getBoundingClientRect(),size=preview.getBoundingClientRect();
+ preview.style.left=Math.max(8,Math.min(innerWidth-size.width-8,box.left+box.width/2-size.width/2))+'px';
+ preview.style.top=(box.top>size.height+12?box.top-size.height-8:Math.min(innerHeight-size.height-8,box.bottom+8))+'px';
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')hideStepPreview();});
+window.addEventListener('scroll',hideStepPreview,true);window.addEventListener('resize',hideStepPreview);
 function bind(root){
+ hideStepPreview();
+ root.querySelectorAll('[data-timeline-step]').forEach(button=>{
+  button.onmouseenter=()=>showStepPreview(button);button.onmouseleave=hideStepPreview;
+  button.onfocus=()=>showStepPreview(button);button.onblur=hideStepPreview;
+  button.onclick=e=>{e.preventDefault();e.stopPropagation();hideStepPreview();button.closest('#day-dialog')?.close();openDetail(button.dataset.timelineProject,button.dataset.timelineStep);};
+ });
  requestAnimationFrame(growVisibleTextFields);
  bindOutbox(root);
  root.querySelectorAll('[data-calendar-mode]').forEach(b=>b.onclick=()=>{state.calendarMode=b.dataset.calendarMode;render();});
