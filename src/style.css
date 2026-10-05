@@ -109,3 +109,8 @@
 /* The represented/current step is white with its own milestone-color outline. */
 .mini-timeline .timeline-step.step-represented .step-circle,
 .mini-timeline .timeline-step.step-current .step-circle{background:#fff;border:3px solid var(--step-color);box-shadow:none}
+.section-toggle{margin-left:auto;min-height:32px;padding:5px 12px;font-size:11px;flex-shrink:0;border-radius:5px;background:#fff}
+[data-task-section]>.section-heading{flex-wrap:wrap;gap:10px;margin-bottom:10px}
+[data-task-section]>.section-heading h2{margin:0}
+[data-task-section]>.needs-strip{max-width:100%;padding-bottom:8px}
+[data-task-section] .needs-item{flex-shrink:0;white-space:normal}
