@@ -177,3 +177,7 @@ textarea,.quick-entry textarea,.card-questions textarea,#comment-form textarea{m
 .needs-item .chip-status{display:block;position:static;align-self:flex-end;text-align:right;font-size:11px;font-weight:750;line-height:1.4;margin-bottom:5px;padding:0;color:#6A6466;}
 .needs-item .chip-status-waiting{color:#B42318;}.needs-item .chip-status-in_progress{color:#21664f;}
 .needs-item>strong,.needs-item>small,.needs-item>.chip-step,.needs-item:has(.card-questions)>strong,.needs-item:has(.card-questions)>.chip-step,.needs-item:has(.card-questions)>small{padding-right:0!important;}
+
+.recap-questions>h2{margin-bottom:10px;}.recap-questions-intro,.recap-question-coverage{font-size:12px;color:#6A6466;margin:8px 0;}
+.recap-question-project{background:#fff;border:1px solid #d9e1d9;border-radius:10px;padding:18px;margin:14px 0;min-width:0;}
+.recap-question-project>h3{font-size:18px;overflow-wrap:anywhere;}.recap-question-scope{border-top:1px solid #d9e1d9;padding-top:12px;margin-top:14px;}.recap-question-scope>h4{font-size:14px;overflow-wrap:anywhere;}.recap-question-scope .card-questions{border:0;margin-top:5px;padding-top:0;}.recap-question-scope .card-questions>h4{display:none;}
