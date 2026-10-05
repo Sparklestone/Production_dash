@@ -70,3 +70,11 @@ test('timeline shows all steps in date order with undated last and descendant ro
  assert.equal(timelineStepState({title:'Client review',status:'in_progress'}),'current');
  assert.deepEqual(timelineSteps(projects.x,[],projects),[]);
 });
+
+test('explicit client meeting wins over review/release metadata and title',()=>{
+ for(const title of ['Client approval','Release','Collateral Template Kickoff'])assert.equal(milestoneKind({title,step_type:'client_meeting',milestone_type:'client_delivery'}),'meeting');
+ assert.equal(milestoneKind({title:'Release',milestone_type:'client_meeting'}),'meeting');
+ assert.equal(milestoneKind({title:'Client approval',step_type:null}),'review');
+ assert.equal(milestoneKind({title:'Client delivery',step_type:null}),'release');
+ assert.equal(clientMilestone({step_type:'client_meeting'}),true);
+});

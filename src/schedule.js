@@ -30,8 +30,10 @@ export function groupAssignments(items, projects) {
 }
 export function milestoneKind(item) {
  // Explicit metadata wins. Background notes do not classify a milestone.
+ if (item.step_type === 'client_meeting') return 'meeting';
  const kind = item.milestone_type || item.item_type || item.type;
- if (['client_meeting', 'client_review', 'client_presentation'].includes(kind)) return 'review';
+ if (kind === 'client_meeting') return 'meeting';
+ if (['client_review', 'client_presentation'].includes(kind)) return 'review';
  if (['release', 'client_release', 'client_delivery', 'client_handoff'].includes(kind)) return 'release';
  if (kind) return null;
  const title = item.title || '';
