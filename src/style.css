@@ -181,3 +181,18 @@ textarea,.quick-entry textarea,.card-questions textarea,#comment-form textarea{m
 .recap-questions>h2{margin-bottom:10px;}.recap-questions-intro,.recap-question-coverage{font-size:12px;color:#6A6466;margin:8px 0;}
 .recap-question-project{background:#fff;border:1px solid #d9e1d9;border-radius:10px;padding:18px;margin:14px 0;min-width:0;}
 .recap-question-project>h3{font-size:18px;overflow-wrap:anywhere;}.recap-question-scope{border-top:1px solid #d9e1d9;padding-top:12px;margin-top:14px;}.recap-question-scope>h4{font-size:14px;overflow-wrap:anywhere;}.recap-question-scope .card-questions{border:0;margin-top:5px;padding-top:0;}.recap-question-scope .card-questions>h4{display:none;}
+
+/* Queue status is separate from production status and client milestone colors. */
+.revisions-panel{margin:0 0 18px;border:1px solid #e0a3a3;border-radius:10px;background:#fff4f4;color:#241F20;overflow:hidden}
+.revisions-panel>summary{display:flex;align-items:center;gap:10px;padding:14px 16px;cursor:pointer;font-weight:700;list-style:none}
+.revisions-panel>summary::before{content:'▸';color:#a62c2c}.revisions-panel[open]>summary::before{content:'▾'}
+.revision-count{font-size:12px;padding:3px 8px;border-radius:20px;background:#f3d5d5;color:#8c2323}
+.revisions-body{padding:0 16px 16px}.revisions-body>p{font-size:12px;color:#695555;margin:0 0 12px}
+.revision-entry{padding:12px 0;border-top:1px solid #edd3d3}.revision-entry>div{display:flex;gap:8px;flex-wrap:wrap;justify-content:space-between}.revision-entry strong{font-size:13px}.revision-entry p{white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.5;margin:8px 0}.revision-entry small,.revision-state{font-size:11px;color:#795757}
+.is-revising.is-revising{background:#f9e7e7;border-color:#d99b9b;color:#665757}
+.is-revising.is-revising .task-row-title,.is-revising.is-revising .listing-name,.is-revising.is-revising .finished-title{color:#665757}
+.revision-badge{display:block;width:fit-content;color:#a32929;font-size:11px;font-weight:800;letter-spacing:.02em;margin-bottom:8px;line-height:1.2}
+.project-listing>summary>.revision-badge{margin:0 8px 0 0}.finished-task>summary>.revision-badge{margin:0 6px 0 0}
+.revision-detail-heading{border-radius:8px;padding:8px}.calendar-all-event>.revision-badge{margin-bottom:4px}
+.revision-unavailable{font-size:12px;color:#8c2323}
+@media(max-width:600px){.revisions-panel>summary{padding:12px}.revisions-body{padding:0 12px 12px}.project-listing>summary>.revision-badge{font-size:10px;margin-right:4px}}
