@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {unresolvedPastDue,dateChangeNote} from '../src/past-due.js';
+const projects={p:{id:'p',status:'active'},done:{id:'done',status:'done'},sub:{id:'sub',parent_id:'done',status:'active'}};
+const items=[{id:'a',project_id:'p',title:'Mine',owner_id:'me',status:'pending',due_date:'2026-10-02'},{id:'b',project_id:'p',title:'Team',owner_id:'other',status:'in_progress',due_date:'2026-10-01'},{id:'c',project_id:'p',title:'Today',owner_id:'me',status:'pending',due_date:'2026-10-07'},{id:'d',project_id:'p',title:'Finished',owner_id:'me',status:'done',due_date:'2026-10-01'},{id:'e',project_id:'done',title:'Closed',owner_id:'me',status:'pending',due_date:'2026-10-01'},{id:'f',project_id:'sub',title:'Closed ancestor',owner_id:'me',status:'pending',due_date:'2026-10-01'},{id:'g',project_id:'p',title:'Unassigned',owner_id:null,status:'pending',due_date:'2026-10-03'}];
+test('personal scope excludes other owners, done, today and closed ancestry',()=>assert.deepEqual(unresolvedPastDue(items,projects,'2026-10-07','me').map(x=>x.id),['a']));
+test('team scope includes unassigned and sorts oldest first without mutating input',()=>{assert.deepEqual(unresolvedPastDue(items,projects,'2026-10-07').map(x=>x.id),['b','a','g']);assert.equal(items[0].id,'a');});
+test('invalid/missing dates and missing projects are excluded',()=>assert.deepEqual(unresolvedPastDue([{id:'x',project_id:'missing',status:'pending',due_date:'2026-10-01'},{id:'y',project_id:'p',status:'pending',due_date:null}],projects,'2026-10-07'),[]));
+test('date change note names exact task, old/new date and unchanged status',()=>assert.equal(dateChangeNote(items[0],'2026-10-09'),'Change due date for "Mine" from 2026-10-02 to 2026-10-09. Keep the task status unchanged. Requested from the past due section.'));
+test('same, invalid and impossible dates rejected',()=>{for(const d of ['2026-10-02','nope','2026-02-30'])assert.throws(()=>dateChangeNote(items[0],d));});
