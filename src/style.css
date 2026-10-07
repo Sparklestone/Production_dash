@@ -196,3 +196,20 @@ textarea,.quick-entry textarea,.card-questions textarea,#comment-form textarea{m
 .revision-detail-heading{border-radius:8px;padding:8px}.calendar-all-event>.revision-badge{margin-bottom:4px}
 .revision-unavailable{font-size:12px;color:#8c2323}
 @media(max-width:600px){.revisions-panel>summary{padding:12px}.revisions-body{padding:0 12px 12px}.project-listing>summary>.revision-badge{font-size:10px;margin-right:4px}}
+
+.project-expand-controls{align-items:center;flex-wrap:wrap}
+.hide-done-control{display:inline-flex;align-items:center;gap:7px;font-size:12px;margin:0 0 0 4px;min-height:34px;cursor:pointer;color:var(--ink)}
+.hide-done-control input[type=checkbox]{width:16px;height:16px;margin:0;accent-color:#241F20;cursor:pointer}
+
+/* Fit the team on desktop; keep readable columns on small screens. */
+.workload-table{width:100%;min-width:100%;table-layout:fixed}
+.workload-table th,.workload-table td{width:calc(100% / var(--workload-columns));min-width:0;max-width:none;padding:8px}
+.workload-table th strong{font-size:13px}.workload-column-steps{gap:7px}
+.workload-step{padding:0;border-radius:7px;overflow:hidden;min-width:0}
+.workload-step>summary{display:block;cursor:pointer;padding:9px;list-style:none;font-size:12px;overflow-wrap:anywhere}
+.workload-step>summary::after{content:'▸';display:block;text-align:right;color:#6A6466;margin-top:4px}.workload-step[open]>summary::after{content:'▾'}
+.workload-step>summary strong,.workload-step>summary>span:not(.chip-status):not(.revision-badge),.workload-step>summary small{display:block}
+.workload-step>summary strong{font-size:12px;line-height:1.4;margin:5px 0 3px}.workload-step>summary small{font-size:10px;color:#6A6466;margin-top:5px}
+.workload-step>summary .chip-status{font-size:9px}.workload-step-body .task-card{border:0;border-top:1px solid #d9e1d9;border-radius:0;padding:8px}
+.workload-step-body .task-row-meta{flex-wrap:wrap;margin-left:0}.workload-step-body .task-row-title h3{font-size:12px}.workload-step-body .quick-entry{flex-wrap:wrap}.workload-step-body .quick-entry textarea{width:100%;min-width:0}.workload-step-body .task-row-title{flex-basis:100%}
+@media(max-width:850px){.workload-table{width:calc(var(--workload-columns) * 190px);min-width:100%}.workload-table th,.workload-table td{width:190px;min-width:190px;max-width:190px}}
