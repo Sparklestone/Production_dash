@@ -213,3 +213,6 @@ textarea,.quick-entry textarea,.card-questions textarea,#comment-form textarea{m
 .workload-step>summary .chip-status{font-size:9px}.workload-step-body .task-card{border:0;border-top:1px solid #d9e1d9;border-radius:0;padding:8px}
 .workload-step-body .task-row-meta{flex-wrap:wrap;margin-left:0}.workload-step-body .task-row-title h3{font-size:12px}.workload-step-body .quick-entry{flex-wrap:wrap}.workload-step-body .quick-entry textarea{width:100%;min-width:0}.workload-step-body .task-row-title{flex-basis:100%}
 @media(max-width:850px){.workload-table{width:calc(var(--workload-columns) * 190px);min-width:100%}.workload-table th,.workload-table td{width:190px;min-width:190px;max-width:190px}}
+
+/* The workload summary already names the project, step and due date. */
+.workload-step-body .task-row-main{display:none}
