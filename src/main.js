@@ -1,3 +1,4 @@
+import {statusLabel} from './status-labels.js';
 import {unresolvedPastDue,dateChangeNote} from './past-due.js';
 import {visibleCards} from './hide-done.js';
 import {pendingRevisions,revisionTargets} from './revisions.js';
@@ -22,8 +23,7 @@ let activeUserId=null;
 const TZ = 'America/Denver';
 const state = { data: null, view: 'today', member: 'all', client: 'all', status: 'open', search: '', open: null, busy: false, scheduleModes: {}, calendarMonths: {}, completing: false, openDay: null, focusedTask: null, expandedProjects: {}, hideDone: false, workloadExpanded: {}, sectionModes: {}, access: null, accessReady: false, workloadMember: 'all', workScope: 'mine', calendarMode: 'month', calendarAnchor: null, calendarOwner: 'all', calendarProject: 'all', liveState: 'Connecting', livePending: false, legendOpen: false, revisionsOpen: false, revisions: [], revisionsAvailable: true, outbox: [], outboxBusy: {}, questionBusy: {}, questionDrafts: {}, questionsAvailable: false, quickDrafts: {}, pastDateDrafts: {}, pastDateBusy: {}, pastDateFeedback: {}, matchText: '', matchItem: null, matchSaving: false, matchFeedback: '', dependencyEdges: [], dependencyAvailable: false };
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const labels = { active:'In progress', in_progress:'In progress', waiting:'Waiting', pending:'Planned', not_started:'Not started', done:'Done', blocked:'Blocked' };
-const label = s => labels[s] || String(s || 'Unknown').replaceAll('_',' ');
+const label = statusLabel;
 const today = () => new Intl.DateTimeFormat('en-CA', { timeZone:TZ, year:'numeric',month:'2-digit',day:'2-digit' }).format(new Date());
 const fmtDate = d => d ? new Date(d.slice(0,10)+'T12:00:00').toLocaleDateString('en-US', {month:'short',day:'numeric'}) : 'Date not set';
 const stamp = ts => new Date(ts).toLocaleString('en-US',{timeZone:TZ,month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
