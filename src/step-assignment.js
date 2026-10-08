@@ -1,0 +1,1 @@
+export async function saveStepOwner(client,item,owner){const {data,error}=await client.rpc('set_dashboard_step_owner',{target_id:item.id,new_owner:owner||null,expected_owner:item.owner_id||null});if(error||data?.id!==item.id||(data.owner_id||null)!==(owner||null))throw Error('Assignment not confirmed');return data;}
