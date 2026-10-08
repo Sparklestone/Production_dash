@@ -1,0 +1,2 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {timingPattern} from '../src/timing-patterns.js';
+test('reference windows are calendar-day ranges, not effort counts',()=>{assert.equal(timingPattern({title:'Design the collateral'}),'18-20 calendar days');assert.equal(timingPattern({title:'Collect training recordings'}),'2 calendar days');assert.equal(timingPattern({title:'Unknown step'}),null);});
