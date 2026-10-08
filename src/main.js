@@ -191,7 +191,7 @@ function projectStepListings(p,d){
  }).join('');
 }
 function taskBreadcrumb(p,d){
- return `<span class="task-breadcrumb">${projectPath(p,d.pm).map((part,n)=>`${n?'<span class="breadcrumb-separator" aria-hidden="true">›</span>':''}<button class="text-button" data-open="${esc(part.id)}">${esc(n?workstreamLabel(part,d.pm):shortName(part,d))}</button>`).join('')}</span>`;
+ return `<span class="task-breadcrumb">${projectPath(p,d.pm).map((part,n)=>`${n?'<span class="breadcrumb-separator" aria-hidden="true">›</span>':''}<button class="text-button" data-open="${esc(part.id)}">${esc(n?workstreamLabel(part,d.pm):part.name)}</button>`).join('')}</span>`;
 }
 function projectSchedule(p,d,rollup=false){
  const key=rollup?'page-'+p.id:p.id;
@@ -280,7 +280,7 @@ function todayView(d){
 }
 function workloadStep(i,d){
  const p=d.pm[i.project_id],kind=milestoneKind(i);
- return `<details class="workload-step task-card ${kind?`client-milestone milestone-${kind}`:''} ${i.status==='in_progress'?'has-current-step':''}" data-workload-step="${esc(i.id)}" data-card-item="${esc(i.id)}" data-card-open="${esc(i.project_id)}" ${state.workloadExpanded[i.id]?'open':''}><summary>${chipStatusBadge(i)}<span class="workload-breadcrumb">${esc(projectPath(p,d.pm).map((part,n)=>n?workstreamLabel(part,d.pm):shortName(part,d)).join(' › '))}</span><strong>${esc(i.title)}</strong><small>${esc(due(i.due_date,i.status).text)}</small></summary><div class="workload-step-body">${taskCard(i,d)}</div></details>`;
+ return `<details class="workload-step task-card ${kind?`client-milestone milestone-${kind}`:''} ${i.status==='in_progress'?'has-current-step':''}" data-workload-step="${esc(i.id)}" data-card-item="${esc(i.id)}" data-card-open="${esc(i.project_id)}" ${state.workloadExpanded[i.id]?'open':''}><summary>${chipStatusBadge(i)}<span class="workload-breadcrumb">${esc(projectPath(p,d.pm).map((part,n)=>n?workstreamLabel(part,d.pm):part.name).join(' › '))}</span><strong>${esc(i.title)}</strong><small>${esc(due(i.due_date,i.status).text)}</small></summary><div class="workload-step-body">${taskCard(i,d)}</div></details>`;
 }
 function workloadView(d){
  const columns=workloadColumns(state.data.members,state.data.sched,d.pm),open=state.data.sched.filter(i=>i.status!=='done'&&!projectIsDone(d.pm[i.project_id],d.pm));
