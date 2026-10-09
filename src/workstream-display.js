@@ -12,3 +12,6 @@ export function workstreamLabel(project,projects){
 export function flatProjectBranches(project,projects,hideDone=false){
  const result=[],seen=new Set();function visit(p,depth){if(!p||seen.has(p.id)||(hideDone&&p.status==='done'))return;seen.add(p.id);result.push({project:p,depth});Object.values(projects).filter(c=>c.parent_id===p.id).forEach(c=>visit(c,depth+1));}visit(project,0);return result;
 }
+
+// Workstreams are displayed exactly one level under the root project.
+export function displayProjectPath(project,projects){const path=projectPath(project,projects);return path.length>2?[path[0],path.at(-1)]:path;}
