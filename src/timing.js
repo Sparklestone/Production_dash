@@ -25,7 +25,7 @@ export function timingPlan(items,projects,changes,holidays=[],coverage=[]){
    const adjusted=footprint(item,holidays);if(barrier)barrier=adjusted.end>barrier?adjusted.end:barrier;
   }
  }
- const scoped=Object.values(byId).filter(i=>affected.has(i.project_id));
+ const scoped=Object.values(byId).filter(i=>affected.has(i.project_id)&&i.status!=='done');
  const changed=Object.values(byId).filter(i=>{const old=items.find(x=>x.id===i.id);return old.start_date!==i.start_date||old.due_date!==i.due_date;});
  if(scoped.some(i=>{const f=footprint(i,holidays);if(!f)return false;for(let month=f.start.slice(0,7);month<=f.end.slice(0,7);){if(!coverage.includes(month))return true;const [y,m]=month.split('-').map(Number);month=`${m===12?y+1:y}-${String(m===12?1:m+1).padStart(2,'0')}`;}return false;}))throw Error('Monigle holiday coverage is not verified for these dates');
  return {affected:[...affected],explicit:Object.entries(changes).map(([id,change])=>({id,...change})),changes:changed.map(i=>({id:i.id,start_date:i.start_date||null,due_date:i.due_date||null,due_date_suggested:i.due_date_suggested||false,automatic:automatic.has(i.id)})),issues:schedulingIssues(Object.values(byId),projects,holidays),items:Object.values(byId)};
