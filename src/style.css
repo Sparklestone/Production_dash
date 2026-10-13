@@ -264,3 +264,14 @@ textarea,.quick-entry textarea,.card-questions textarea,#comment-form textarea{m
 .workload-step>summary strong{font-size:13px;line-height:1.35}
 
 .workload-step>summary .workload-breadcrumb{font-weight:400}
+.workload-step>summary{display:flex;flex-direction:column;align-items:stretch}
+
+.workload-step>summary .workload-breadcrumb{order:1;font-size:10px;line-height:1.35;padding-bottom:5px;margin-bottom:5px;border-bottom:1px solid #d9e1d9}
+
+.workload-step>summary strong{order:2;font-size:12px;line-height:1.35;margin:0}
+
+.workload-step>summary .chip-status{order:3;align-self:flex-start;margin-top:7px}
+
+.workload-step>summary small{order:4;font-size:11px;margin-top:2px}
+
+.workload-step>summary::after{order:5;align-self:flex-end}
