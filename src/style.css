@@ -276,3 +276,8 @@ textarea,.quick-entry textarea,.card-questions textarea,#comment-form textarea{m
 
 .workload-step>summary::after{order:5;align-self:flex-end}
 .workload-step>summary .workload-breadcrumb{border-bottom-color:#241F20}
+
+
+/* Detail float-over nearly spans the main content column; keep phone gutters. */
+@media(min-width:801px){#detail{width:min(1168px,calc(100vw - 112px))}}
+@media(min-width:601px) and (max-width:800px){#detail{width:calc(100vw - 64px)}}
