@@ -262,3 +262,5 @@ textarea,.quick-entry textarea,.card-questions textarea,#comment-form textarea{m
 @media(max-width:850px){.workload-table{width:max(100%,calc(var(--workload-columns) * 190px));min-width:100%}.workload-table th,.workload-table td{min-width:190px;width:190px;max-width:190px}}
 .comment-history{margin:18px 0;border-top:1px solid #d4d4d4;padding:14px 0}.comment-history summary{font-weight:700;cursor:pointer}.comment-history-entry{border-top:1px solid #e5e5e5;padding:14px 0}.comment-history-entry>div{display:flex;justify-content:space-between;gap:12px}.comment-state{font-size:12px;font-weight:700}.comment-history-entry p,.disregard-quote{white-space:pre-wrap;overflow-wrap:anywhere}.is-disregarded{color:#666}.is-disregarded>p:not(.undo-note){text-decoration:line-through}.undo-note{font-size:13px}.restore-choice{display:flex;align-items:flex-start;gap:10px;margin:16px 0}.restore-choice input{width:auto;margin-top:4px}.disregard-quote{padding:12px;background:#f4f3f2;border-radius:6px}
 .workload-step>summary strong{font-size:13px;line-height:1.35}
+
+.workload-step>summary .workload-breadcrumb{font-weight:400}
