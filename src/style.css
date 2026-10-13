@@ -274,4 +274,4 @@ textarea,.quick-entry textarea,.card-questions textarea,#comment-form textarea{m
 
 .workload-step>summary small{order:4;font-size:11px;margin-top:2px}
 
-.workload-step>summary::after{order:5;align-self:flex-end}
+.workload-step>summary::after{order:5;align-self:flex-end}\n.workload-step>summary .workload-breadcrumb{border-bottom-color:#241F20}\n
