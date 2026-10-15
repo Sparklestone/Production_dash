@@ -42,7 +42,7 @@ export function ganttAxis(anchor,mode,pad=1){
  const monthChanged=i=>i>0&&days[i].slice(0,7)!==days[i-1].slice(0,7);
  const columns=[];
  if(mode==='quarter'){
-  for(let i=0;i<days.length;i+=5)columns.push({offset:i,span:Math.min(5,days.length-i),label:dayFmt(days[i],{month:'short',day:'numeric'})});
+  let i=0;while(i<days.length){let j=i+1;while(j<days.length&&new Date(days[j]+'T12:00:00Z').getUTCDay()!==1)j++;columns.push({offset:i,span:j-i,label:dayFmt(days[i],{month:'short',day:'numeric'})});i=j;}
  }else if(mode==='year'){
   let i=0;while(i<days.length){const mk=days[i].slice(0,7);let j=i;while(j<days.length&&days[j].slice(0,7)===mk)j++;columns.push({offset:i,span:j-i,label:dayFmt(days[i],{month:'short'})+(days[i].slice(5,7)==='01'?" '"+days[i].slice(2,4):''),major:true});i=j;}
  }else{
