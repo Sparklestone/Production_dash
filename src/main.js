@@ -459,7 +459,7 @@ function scheduleView(d){
   for(const s of subsOf[p.id]||[]){const rows=sortRows((byProject[s.id]||[]).filter(visible));if(rows.length)sections.push({subhead:esc(s.name),rows});}
   if(!sections.length)continue;
   const all=sections.flatMap(s=>s.rows),steps=all.filter(r=>r.item_id),open=steps.filter(r=>r.status!=='done').length,collapsed=!!state.ganttCollapsed[p.id];
-  groups.push({id:p.id,collapsed,sections,head:`<div class="gantt-group-head"><button class="gantt-chevron" data-gantt-toggle="${esc(p.id)}" aria-expanded="${!collapsed}" aria-label="${collapsed?'Expand':'Collapse'} ${esc(p.name)}">${collapsed?'▸':'▾'}</button><h4><button class="title-button" data-open="${esc(p.id)}">${esc(p.name)}</button></h4><span class="gantt-count">${open} open / ${steps.length} steps</span></div>`});
+  groups.push({id:p.id,collapsed,sections,head:`<div class="gantt-group-head"><div class="gantt-group-head-inner"><button class="gantt-chevron" data-gantt-toggle="${esc(p.id)}" aria-expanded="${!collapsed}" aria-label="${collapsed?'Expand':'Collapse'} ${esc(p.name)}">${collapsed?'▸':'▾'}</button><h4><button class="title-button" data-open="${esc(p.id)}">${esc(p.name)}</button></h4><span class="gantt-count">${open} open / ${steps.length} steps</span></div></div>`});
  }
  const lh=ganttHelpers(d,mode);lh.scope='live';
  const chart=ganttChart(axis,groups,lh);
