@@ -365,3 +365,4 @@ textarea,.quick-entry textarea,.card-questions textarea,#comment-form textarea{m
 @media(max-width:650px){.step-row>summary{flex-wrap:wrap;row-gap:4px}.step-row>summary .task-row-title{flex-basis:calc(100% - 34px)}.step-row>summary .owner{margin-left:19px}.step-row .step-row-body{padding-left:14px}}
 .step-row>summary .task-row-title{flex-basis:0}
 .step-row>summary{flex-wrap:wrap}
+.step-row>.timing-warning{display:block;margin:8px 12px 0}
