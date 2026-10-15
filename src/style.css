@@ -333,7 +333,8 @@ textarea,.quick-entry textarea,.card-questions textarea,#comment-form textarea{m
 .gantt-controls .hide-done-control{margin-left:auto}
 .gantt-chevron{background:transparent;border:0;font-size:15px;min-width:30px;min-height:30px;padding:2px;color:var(--mut);flex-shrink:0}
 .gantt-chevron:hover{background:#eef4ee}
-.gantt-group-head{gap:6px}
+.gantt-group-head{gap:6px;justify-content:flex-start}
+.gantt-group-head .gantt-count{margin-left:auto}
 .gantt-subhead{display:flex;background:#fafbf9;border-bottom:1px solid #eef1ed;position:relative;z-index:1}
 .gantt-subhead .gantt-rail{flex:0 0 220px;padding:4px 10px;font-size:11.5px;font-weight:700;color:var(--mut);border-right:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .gantt-subhead .gantt-track{flex:1}

@@ -538,11 +538,13 @@ function bind(root){
   const prop=scope==='live'?'calendarScrollTo':'scrollTo';
   const target=st[prop]===undefined?'anchor':st[prop];
   if(target!=null){el.scrollLeft=target==='anchor'?el.scrollWidth*parseFloat(el.dataset.anchorFrac):Math.max(0,target);st[prop]=null;}
+  else if(st.lastScroll!=null)el.scrollLeft=Math.min(st.lastScroll,el.scrollWidth-el.clientWidth);
   el.dataset.setPos=el.scrollLeft;
   el.addEventListener('scroll',()=>{
    if(el.dataset.busy||el.scrollWidth<=el.clientWidth+40)return;
    if(Math.abs(el.scrollLeft-parseFloat(el.dataset.setPos||'0'))<4)return;
    const pw=el.scrollWidth*parseFloat(el.dataset.periodFrac);let n=0;
+   st.lastScroll=el.scrollLeft;
    if(el.scrollLeft<30)n=-1;else if(el.scrollLeft>el.scrollWidth-el.clientWidth-30)n=1;
    if(!n)return;
    el.dataset.busy='1';
