@@ -543,10 +543,13 @@ function bind(root){
   el.addEventListener('scroll',()=>{
    if(el.dataset.busy||el.scrollWidth<=el.clientWidth+40)return;
    if(Math.abs(el.scrollLeft-parseFloat(el.dataset.setPos||'0'))<4)return;
+   const cur=el.scrollLeft,prev=parseFloat(el.dataset.prevPos||el.dataset.setPos||'0');el.dataset.prevPos=String(cur);
+   if(st.lastShiftAt&&Date.now()-st.lastShiftAt<350)return;
    const pw=el.scrollWidth*parseFloat(el.dataset.periodFrac);let n=0;
-   st.lastScroll=el.scrollLeft;
-   if(el.scrollLeft<30)n=-1;else if(el.scrollLeft>el.scrollWidth-el.clientWidth-30)n=1;
+   st.lastScroll=cur;
+   if(cur<30&&cur<prev)n=-1;else if(cur>el.scrollWidth-el.clientWidth-30&&cur>prev)n=1;
    if(!n)return;
+   st.lastShiftAt=Date.now();
    el.dataset.busy='1';
    if(scope==='live'){state.calendarAnchor=shiftGanttAnchor(state.calendarAnchor||today(),state.calendarMode,n);state.calendarScrollTo=el.scrollLeft-n*pw;render();}
    else{const r=state.ganttRanges[key]||(state.ganttRanges[key]={mode:'week',anchor:today(),scrollTo:'anchor'});r.anchor=shiftGanttAnchor(r.anchor,r.mode,n);r.scrollTo=el.scrollLeft-n*pw;if(el.closest('dialog'))refreshDetail();else render();}
