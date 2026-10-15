@@ -32,17 +32,21 @@ export function ganttChart(axis,groups,ctx){
  const gridlines=axis.columns.map(c=>`<span style="left:${pct(c.offset)};width:${pct(c.span)}"></span>`).join('');
  let weekendHidden=0;
  const sections=groups.map((g,gi)=>{
-  const rows=[];
-  for(const r of g.rows){
-   const {left,right}=ganttPosition(axis,r.date,r.last_date||r.date);
-   if(right<=left){if(r.date<=axis.end&&(r.last_date||r.date)>=axis.start)weekendHidden++;continue;}
-   const before=r.date<axis.start,after=(r.last_date||r.date)>axis.end;
-   rows.push(`<div class="gantt-row"><div class="gantt-rail"><strong>${esc(r.title)}</strong><small>${esc(rowMeta(r))}</small></div><div class="gantt-track"><button type="button" class="gantt-bar ${barClass(r)}" style="left:${pct(left)};width:${pct(Math.max(right-left,0.35))}" data-open="${esc(r.project_id)}" ${r.item_id?`data-target-item="${esc(r.item_id)}" data-calendar-item="${esc(r.item_id)}"`:''} title="${esc(barTitle(r))}">${esc((before?'← ':'')+chip(r)+(after?' →':''))}</button></div></div>`);
+  let rowsHtml='',rowCount=0;
+  for(const sec of g.sections){
+   const rows=[];
+   for(const r of sec.rows){
+    const {left,right}=ganttPosition(axis,r.date,r.last_date||r.date);
+    if(right<=left){if(r.date<=axis.end&&(r.last_date||r.date)>=axis.start)weekendHidden++;continue;}
+    const before=r.date<axis.start,after=(r.last_date||r.date)>axis.end;
+    rows.push(`<div class="gantt-row"><div class="gantt-rail"><strong>${esc(r.title)}</strong><small>${esc(rowMeta(r))}</small></div><div class="gantt-track"><button type="button" class="gantt-bar ${barClass(r)}" style="left:${pct(left)};width:${pct(Math.max(right-left,0.35))}" data-open="${esc(r.project_id)}" ${r.item_id?`data-target-item="${esc(r.item_id)}" data-calendar-item="${esc(r.item_id)}"`:''} title="${esc(barTitle(r))}">${esc((before?'← ':'')+chip(r)+(after?' →':''))}</button></div></div>`);
+   }
+   if(rows.length){rowsHtml+=(sec.subhead?`<div class="gantt-subhead"><div class="gantt-rail">${sec.subhead}</div><div class="gantt-track"></div></div>`:'')+rows.join('');rowCount+=rows.length;}
   }
-  if(!rows.length)return '';
+  if(!rowCount)return '';
   const inRange=todayKey>=axis.start&&todayKey<=axis.end,tpos=inRange?axis.days.findIndex(d=>d>=todayKey):-1;
   const marker=tpos>=0?`<div class="gantt-today" style="left:${pct(tpos+0.5)}">${gi===0?'<span class="gantt-today-label">TODAY</span>':''}</div>`:'';
-  return `<section class="gantt-group">${g.head||''}<div class="gantt-rows"><div class="gantt-gridlines" aria-hidden="true">${gridlines}</div>${marker}${rows.join('')}</div></section>`;
+  return `<section class="gantt-group ${g.collapsed?'is-collapsed':''}">${g.head||''}${g.collapsed?'':`<div class="gantt-rows"><div class="gantt-gridlines" aria-hidden="true">${gridlines}</div>${marker}${rowsHtml}</div>`}</section>`;
  }).join('');
  const html=`<div class="gantt-scroll"><div class="gantt mode-${mode}" role="group" aria-label="Gantt schedule chart"><div class="gantt-header"><div class="gantt-rail" aria-hidden="true"></div><div class="gantt-cols">${axis.columns.map(c=>`<span class="gantt-col" style="left:${pct(c.offset)};width:${pct(c.span)}">${esc(c.label)}</span>`).join('')}</div></div>${sections||'<p class="empty" style="padding:14px">No dated items in this range.</p>'}</div></div>`;
  return {html,weekendHidden};
