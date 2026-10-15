@@ -293,7 +293,7 @@ textarea,.quick-entry textarea,.card-questions textarea,#comment-form textarea{m
 
 /* Gantt charts (Live calendar + project Schedule calendar tab) */
 .gantt-scroll{overflow-x:auto;padding-bottom:6px}
-.gantt{min-width:680px;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+.gantt{min-width:680px;border:1px solid var(--line);border-radius:10px;background:#fff}
 .gantt.mode-month{min-width:900px}
 .gantt.mode-2mo{min-width:1200px}
 .gantt.mode-quarter{min-width:1600px}
