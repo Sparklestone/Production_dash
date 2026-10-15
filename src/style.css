@@ -341,3 +341,25 @@ textarea,.quick-entry textarea,.card-questions textarea,#comment-form textarea{m
 .gantt-subhead .gantt-track{flex:1}
 .gantt-group.is-collapsed .gantt-group-head{border-bottom:0}
 @media(max-width:700px){.gantt-subhead .gantt-rail{flex-basis:150px}}
+
+/* Collapsible horizontal step rows (all step cards) */
+.task-grid,.assignment-group .task-grid,.page-step-group .task-grid,.listing-content .assignment-group .task-grid,.listing-content .page-step-group>.task-grid,.project-schedule .workstream-group .task-grid,.focus-section .work-bucket>.task-grid{grid-template-columns:minmax(0,1fr)}
+.step-row{display:block;width:100%;padding:0;min-height:0}
+.step-row>summary{display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;list-style:none}
+.step-row>summary::-webkit-details-marker{display:none}
+.step-row>summary .step-select{margin:0;flex-shrink:0}
+.step-row>summary .task-kind{margin-top:0;flex-shrink:0}
+.step-row>summary .task-row-title{flex:1;min-width:0}
+.step-row>summary .task-breadcrumb{margin-bottom:2px}
+.step-row>summary .task-step-name{font-size:15px}
+.step-row>summary .task-date{margin:0;white-space:nowrap;flex-shrink:0}
+.step-row>summary .owner{white-space:nowrap;flex-shrink:0}
+.step-row>summary .pill{flex-shrink:0}
+.step-row>summary .compact-milestone{flex-shrink:0}
+.step-row>summary .timing-warning{flex-basis:100%;order:9}
+.step-row .row-chevron{color:var(--mut);flex-shrink:0;transition:transform .15s}
+.step-row[open]>summary .row-chevron{transform:rotate(90deg)}
+.step-row .step-row-body{padding:6px 14px 12px 31px;border-top:1px solid #eef1ed}
+.step-row .step-row-body .task-row-actions{margin-top:8px}
+.step-row>summary .step-stuck-row{display:flex;flex-shrink:0}
+@media(max-width:650px){.step-row>summary{flex-wrap:wrap;row-gap:4px}.step-row>summary .task-row-title{flex-basis:calc(100% - 34px)}.step-row>summary .owner{margin-left:19px}.step-row .step-row-body{padding-left:14px}}
