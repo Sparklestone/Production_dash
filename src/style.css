@@ -290,3 +290,31 @@ textarea,.quick-entry textarea,.card-questions textarea,#comment-form textarea{m
 .listing-nownext{font-size:12px;color:#6A6466;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px;min-width:0;flex-shrink:2}
 .listing-nownext .no-dates-flag{color:#B3261E;border:1px solid #B3261E;border-radius:4px;padding:0 5px;font-size:10px;font-weight:650;margin-left:6px;white-space:nowrap}
 @media(max-width:650px){.listing-nownext{flex-basis:100%;max-width:100%;order:5}}
+
+/* Gantt charts (Live calendar + project Schedule calendar tab) */
+.gantt-scroll{overflow-x:auto;padding-bottom:6px}
+.gantt{min-width:680px;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+.gantt.mode-quarter,.gantt.mode-year{min-width:940px}
+.gantt-header{display:flex;border-bottom:1px solid var(--line);background:#f0f2ee;font-size:11px;font-weight:700;color:var(--mut);letter-spacing:.3px}
+.gantt-header .gantt-rail{flex:0 0 220px;padding:6px 10px}
+.gantt-cols{position:relative;flex:1;min-height:26px}
+.gantt-col{position:absolute;top:0;bottom:0;padding:6px 3px;border-left:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gantt-group{border-top:1px solid var(--line)}
+.gantt-group:first-of-type{border-top:0}
+.gantt-group-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 12px;background:#f6f7f3;border-bottom:1px solid var(--line)}
+.gantt-group-head h4{font-size:14px}
+.gantt-count{font-size:12px;color:var(--mut);white-space:nowrap}
+.gantt-rows{position:relative}
+.gantt-gridlines{position:absolute;inset:0;pointer-events:none}
+.gantt-gridlines span{position:absolute;top:0;bottom:0;border-left:1px solid #eef1ed}
+.gantt-row{position:relative;display:flex;min-height:46px;border-bottom:1px solid #eef1ed;z-index:1}
+.gantt-row:last-child{border-bottom:0}
+.gantt-row .gantt-rail{flex:0 0 220px;padding:6px 10px;font-size:12px;line-height:1.35;border-right:1px solid var(--line);background:#fff}
+.gantt-rail strong{display:block;font-size:12.5px;font-weight:650}
+.gantt-rail small{color:var(--mut)}
+.gantt-track{position:relative;flex:1}
+.gantt-bar{position:absolute;top:9px;height:28px;min-height:28px;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left;min-width:40px}
+.gantt-bar.gantt-blocked{background:#f7ded7;border-color:#a2492d;color:#a2492d}
+.gantt-today{position:absolute;top:0;bottom:0;width:2px;background:#258567;z-index:2;pointer-events:none}
+.gantt-today-label{position:absolute;top:1px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:800;letter-spacing:1px;color:#258567;background:#e0f8ed;padding:0 3px;border-radius:3px}
+@media(max-width:700px){.gantt-header .gantt-rail,.gantt-row .gantt-rail{flex-basis:150px}.gantt{min-width:600px}}
