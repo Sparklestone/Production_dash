@@ -200,9 +200,9 @@ async function changeStepStatus(id,next){
   await saveStepStatus(supabase,item,next);
   if(session?.user?.id!==uid)return;
   item.status=next;state.stepStatusFeedback[id]='Status saved.';
-  const project=state.open,day=document.querySelector('#day-dialog').open?state.openDay:null,scroll=document.querySelector('#detail').scrollTop;
+  const project=state.open,day=document.querySelector('#day-dialog')?.open?state.openDay:null,scroll=document.querySelector('#detail')?.scrollTop??0;
   delete state.stepStatusBusy[id];render();
-  if(project){openDetail(project,state.focusedTask,true);document.querySelector('#detail').scrollTop=scroll;}
+  if(project){openDetail(project,state.focusedTask,true);const detailEl=document.querySelector('#detail');if(detailEl)detailEl.scrollTop=scroll;}
   if(day)openDay(day.pid,day.key,day.rollup);
  }catch{
   if(session?.user?.id===uid){state.stepStatusFeedback[id]='Not saved. Refresh and try again.';copies().forEach(el=>{el.value=statusChoice(item.status);el.disabled=false;});feedback(state.stepStatusFeedback[id]);}
