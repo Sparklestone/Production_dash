@@ -407,3 +407,9 @@ textarea,.quick-entry textarea,.card-questions textarea,#comment-form textarea{m
 .work-stats{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px}
 @media(max-width:900px){.work-stats{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:520px){.work-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* My work: List/Calendar toggle + undated section under Gantt */
+.my-view-toggle{margin:0 0 16px;display:inline-flex}
+.my-work-calendar .calendar-period-title{margin:18px 0 8px;font-size:20px}
+.my-work-undated{margin-top:26px}
+.my-work-undated .undated-title{font-size:18px;margin-bottom:10px}
