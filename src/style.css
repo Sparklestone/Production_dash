@@ -391,3 +391,9 @@ textarea,.quick-entry textarea,.card-questions textarea,#comment-form textarea{m
 
 /* Workload: breadcrumb redundant with project group headers */
 .workload-table .step-row>summary .task-breadcrumb{display:none}
+
+/* My work stat tiles: all seven on one row */
+.work-stats{gap:10px;flex-wrap:nowrap}
+.work-stats button{flex:1 1 0;min-width:0;min-height:0;padding:8px 6px;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.work-stats button b{font-size:20px;margin-right:4px}
+@media(max-width:700px){.work-stats{flex-wrap:wrap}.work-stats button{flex:1 1 30%;white-space:normal}}
