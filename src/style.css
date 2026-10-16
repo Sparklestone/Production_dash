@@ -413,3 +413,8 @@ textarea,.quick-entry textarea,.card-questions textarea,#comment-form textarea{m
 .my-work-calendar .calendar-period-title{margin:18px 0 8px;font-size:20px}
 .my-work-undated{margin-top:26px}
 .my-work-undated .undated-title{font-size:18px;margin-bottom:10px}
+
+/* Compact one-line header */
+.site-header{padding-bottom:12px;align-items:center}
+.brand-compact{font-size:15px;font-weight:700;letter-spacing:-.2px;display:flex;align-items:center;gap:9px}
+.brand-compact .brand-mark{width:28px;height:30px;font-size:19px;border-radius:7px}
