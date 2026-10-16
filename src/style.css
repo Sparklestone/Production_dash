@@ -378,3 +378,13 @@ textarea,.quick-entry textarea,.card-questions textarea,#comment-form textarea{m
 /* Workload: full-height table (no nested scroll), owner hidden on rows (redundant with left column) */
 .workload-table-scroll{max-height:none;overflow:visible}
 .workload-table .step-row>summary .owner{display:none}
+
+/* Workload: project/subproject groups under each person */
+.workload-project-group{border:1px solid #d9e1d9;border-radius:8px;background:#fff;min-width:0}
+.workload-project-group>summary{display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;list-style:none;font-weight:700;font-size:13px;color:#241F20}
+.workload-project-group>summary::-webkit-details-marker{display:none}
+.workload-project-group>summary::before{content:'▸';color:#6A6466}
+.workload-project-group[open]>summary::before{content:'▾'}
+.workload-project-group>summary .number{margin-left:auto}
+.workload-sub-heading{font-size:11px;color:#6A6466;margin:8px 12px 0;font-weight:650}
+.workload-group-steps{display:flex;flex-direction:column;gap:6px;padding:8px}
