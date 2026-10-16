@@ -397,3 +397,8 @@ textarea,.quick-entry textarea,.card-questions textarea,#comment-form textarea{m
 .work-stats button{flex:1 1 0;min-width:0;min-height:0;padding:8px 6px;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .work-stats button b{font-size:20px;margin-right:4px}
 @media(max-width:700px){.work-stats{flex-wrap:wrap}.work-stats button{flex:1 1 30%;white-space:normal}}
+
+/* Gantt: today line stays behind the frozen label column */
+.gantt-lines{z-index:0}
+.gantt-row .gantt-rail{z-index:5}
+.gantt-header .gantt-rail{flex:0 0 150px}
