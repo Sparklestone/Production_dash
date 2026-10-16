@@ -337,10 +337,10 @@ async function completeTask(id){
   const {data,error}=await supabase.rpc('complete_dashboard_task',{target_schedule_item_id:id});
   if(error||data?.id!==id||data?.status!=='done')throw Error('Completion not confirmed');
   item.status='done';if(state.focusedTask===id)state.focusedTask=null;
-  const projectId=state.open,day=document.querySelector('#day-dialog').open?state.openDay:null;
-  const detailScroll=document.querySelector('#detail').scrollTop;
+  const projectId=state.open,day=document.querySelector('#day-dialog')?.open?state.openDay:null;
+  const detailScroll=document.querySelector('#detail')?.scrollTop??0;
   render();
-  if(projectId){openDetail(projectId,state.focusedTask,true);document.querySelector('#detail').scrollTop=detailScroll;}
+  if(projectId){openDetail(projectId,state.focusedTask,true);const detailEl=document.querySelector('#detail');if(detailEl)detailEl.scrollTop=detailScroll;}
   if(day)openDay(day.pid,day.key,day.rollup);
  }catch{
   cards.forEach(c=>{c.querySelector('.task-complete-status').textContent='Could not confirm completion. This task has not been removed. Try again or use Comment.';c.querySelector('[data-complete-task]').disabled=false;});
