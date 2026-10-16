@@ -374,3 +374,7 @@ textarea,.quick-entry textarea,.card-questions textarea,#comment-form textarea{m
 .workload-table tr:last-child th,.workload-table tr:last-child td{border-bottom:0}
 .workload-column-steps .step-row{border:1px solid var(--line);border-radius:8px;background:#fff}
 @media(max-width:600px){.workload-table th{width:128px;min-width:128px;max-width:128px;padding:8px}}
+
+/* Workload: full-height table (no nested scroll), owner hidden on rows (redundant with left column) */
+.workload-table-scroll{max-height:none;overflow:visible}
+.workload-table .step-row>summary .owner{display:none}
