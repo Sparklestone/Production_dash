@@ -366,3 +366,11 @@ textarea,.quick-entry textarea,.card-questions textarea,#comment-form textarea{m
 .step-row>summary .task-row-title{flex-basis:0}
 .step-row>summary{flex-wrap:wrap}
 .step-row>.timing-warning{display:block;margin:8px 12px 0}
+
+/* Workload transposed: people down the left, steps as horizontal rows */
+.workload-table{width:100%;min-width:0;table-layout:auto}
+.workload-table th,.workload-table td{width:auto;min-width:0;max-width:none;text-align:left;vertical-align:top;padding:10px;border-right:0;border-bottom:1px solid #d9e1d9}
+.workload-table th{position:sticky;left:0;top:auto;z-index:3;width:190px;min-width:190px;max-width:190px;background:#eaf0e8;border-right:1px solid #d9e1d9}
+.workload-table tr:last-child th,.workload-table tr:last-child td{border-bottom:0}
+.workload-column-steps .step-row{border:1px solid var(--line);border-radius:8px;background:#fff}
+@media(max-width:600px){.workload-table th{width:128px;min-width:128px;max-width:128px;padding:8px}}
