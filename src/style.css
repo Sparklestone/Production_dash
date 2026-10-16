@@ -388,3 +388,6 @@ textarea,.quick-entry textarea,.card-questions textarea,#comment-form textarea{m
 .workload-project-group>summary .number{margin-left:auto}
 .workload-sub-heading{font-size:11px;color:#6A6466;margin:8px 12px 0;font-weight:650}
 .workload-group-steps{display:flex;flex-direction:column;gap:6px;padding:8px}
+
+/* Workload: breadcrumb redundant with project group headers */
+.workload-table .step-row>summary .task-breadcrumb{display:none}
