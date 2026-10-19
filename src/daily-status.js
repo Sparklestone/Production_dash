@@ -3,10 +3,13 @@ import {weekWindow,shiftDate} from './insights.js';
 
 // 24 business hours back from `now`: weekend hours do not count.
 // Monday 9:37am looks back to Friday 9:37am.
+const fmts={};
+const weekdayOf=(ms,zone)=>(fmts[zone]||=new Intl.DateTimeFormat('en-US',{timeZone:zone,weekday:'short'})).format(ms);
 export function businessWindowStart(now,hours=24,zone='America/Denver'){
- const isWeekend=ms=>{const w=new Intl.DateTimeFormat('en-US',{timeZone:zone,weekday:'short'}).format(new Date(ms));return w==='Sat'||w==='Sun';};
- let ms=now.getTime(),left=hours*60;
- while(left>0){ms-=60000;if(!isWeekend(ms))left--;}
+ const isWeekend=ms=>{const w=weekdayOf(ms,zone);return w==='Sat'||w==='Sun';};
+ // Step back 15 minutes at a time; the formatter is built once.
+ let ms=now.getTime(),left=hours*4;
+ while(left>0){ms-=900000;if(!isWeekend(ms))left--;}
  return new Date(ms);
 }
 // Only notes tagged [Daily] (a plain-words event: delay, new date, delivery, client decision) are shown.

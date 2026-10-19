@@ -401,7 +401,8 @@ textarea,.quick-entry textarea,.card-questions textarea,#comment-form textarea{m
 /* Gantt: today line stays behind the frozen label column */
 .gantt-lines{z-index:0}
 .gantt-row .gantt-rail{z-index:5}
-.gantt-header .gantt-rail{flex:0 0 150px}
+.gantt-header .gantt-rail{flex:0 0 220px}
+@media(max-width:700px){.gantt-header .gantt-rail{flex-basis:150px}}
 
 /* My work stat tiles: force 7 columns on desktop (prior rule was a 6-col grid) */
 .work-stats{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px}
