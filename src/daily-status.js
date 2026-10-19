@@ -9,6 +9,8 @@ export function businessWindowStart(now,hours=24,zone='America/Denver'){
  while(left>0){ms-=60000;if(!isWeekend(ms))left--;}
  return new Date(ms);
 }
+// Only notes tagged [Daily] (a plain-words event: delay, new date, delivery, client decision) are shown.
+export const DAILY=/^\s*\[Daily\]\s*/i;
 const blocked=i=>['blocked','waiting'].includes(i.status);
 // Each brand (client) gets four sections. Urgent, Next few days and This week
 // never repeat a step (highest priority wins); Changed is a log and may overlap.
@@ -21,7 +23,8 @@ export function dailyStatus({items,updates=[],projects,clients=[],today,now=new 
  for(const i of items){
   const p=projects[i.project_id];if(!p)continue;
   const b=brand(p),when=i.updated_at?new Date(i.updated_at).getTime():0;
-  if(when>=start&&when<=now.getTime())b.changed.push({kind:'step',item:i,project:p,at:i.updated_at,text:i.status==='done'?'marked done':'updated ('+i.status.replace('_',' ')+')'});
+  const added=i.created_at&&new Date(i.created_at).getTime()>=start;
+  if(i.status==='done'&&when>=start&&when<=now.getTime()&&!added&&!/^RETIRED/i.test(i.title))b.changed.push({kind:'done',item:i,project:p,at:i.updated_at,text:'Done'});
   if(i.status==='done'||projectIsDone(p,projects))continue;
   const due=dateKey(i.due_date);seen.add(i.id);
   if(due&&due<today)b.urgent.push({item:i,project:p,due,why:'Past due'});
@@ -32,7 +35,7 @@ export function dailyStatus({items,updates=[],projects,clients=[],today,now=new 
  }
  for(const u of updates){
   const p=projects[u.project_id];if(!p||!u.created_at)continue;const at=new Date(u.created_at).getTime();
-  if(at>=start&&at<=now.getTime())brand(p).changed.push({kind:'note',project:p,at:u.created_at,text:u.note});
+  if(at>=start&&at<=now.getTime()&&DAILY.test(u.note||''))brand(p).changed.push({kind:'note',project:p,at:u.created_at,text:u.note.replace(DAILY,'').trim()});
  }
  const byDue=(a,b)=>(a.due||'9999').localeCompare(b.due||'9999')||a.item.title.localeCompare(b.item.title);
  const list=Object.values(brands).filter(b=>b.changed.length+b.urgent.length+b.next.length+b.week.length);

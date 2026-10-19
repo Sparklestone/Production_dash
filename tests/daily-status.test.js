@@ -14,12 +14,12 @@ test('groups by brand, dedupes urgent/next/week, logs changes',()=>{
   {id:'5',project_id:'q',title:'e',status:'blocked',due_date:null},
   {id:'6',project_id:'q',title:'f',status:'done',due_date:'2026-10-16',updated_at:'2026-10-19T14:00:00Z'},
   {id:'7',project_id:'q',title:'g',status:'pending',due_date:'2026-11-30'}];
- const r=dailyStatus({items,updates:[{project_id:'q',created_at:'2026-10-16T20:00:00Z',note:'n'},{project_id:'q',created_at:'2026-10-10T20:00:00Z',note:'old'}],projects,clients,today:'2026-10-19',now});
+ const r=dailyStatus({items,updates:[{project_id:'q',created_at:'2026-10-16T20:00:00Z',note:'added steps'},{project_id:'q',created_at:'2026-10-16T21:00:00Z',note:'[Daily] n2'},{project_id:'q',created_at:'2026-10-10T20:00:00Z',note:'old'}],projects,clients,today:'2026-10-19',now});
  const acme=r.brands.find(b=>b.name==='Acme'),zed=r.brands.find(b=>b.name==='Zed');
  assert.deepEqual(acme.urgent.map(x=>x.item.id),['1','2']);
  assert.deepEqual(acme.next.map(x=>x.item.id),['3']);
  assert.deepEqual(acme.week.map(x=>x.item.id),['4']);
  assert.deepEqual(zed.urgent.map(x=>x.item.id),['5']);
- assert.equal(zed.changed.length,2);
+ assert.deepEqual(zed.changed.map(x=>x.kind+':'+(x.text||'')),['done:Done','note:n2']);
  assert.equal(r.brands[0].name,'Acme');
 });
