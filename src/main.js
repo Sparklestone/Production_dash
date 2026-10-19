@@ -10,6 +10,7 @@ import {projectPath,displayProjectPath,workstreamLabel,flatProjectBranches} from
 import {stepStatusOptions,statusChoice,saveStepStatus} from './step-status.js';
 import {statusLabel} from './status-labels.js';
 import {unresolvedPastDue} from './past-due.js';
+import {dailyStatus} from './daily-status.js';
 import {visibleCards} from './hide-done.js';
 import {pendingRevisions,revisionTargets} from './revisions.js';
 import {recapQuestionGroups} from './recap-questions.js';
@@ -400,6 +401,16 @@ function myWorkCalendar(d,items){
  const chart=ganttChart(axis,groups,lh);
  return `<section class="my-work-calendar"><h2 class="calendar-period-title">${esc(ganttPeriodTitle(anchor,'week',axis))}</h2>${chart.html}${undated.length?`<section class="my-work-undated"><h2 class="calendar-period-title undated-title">No date <span class="number">${undated.length}</span></h2><div class="task-grid">${items.filter(i=>!dateKey(i.due_date)).map(i=>taskCard(i,d)).join('')}</div></section>`:''}${groups.length?'':'<p class="empty">No dated steps in this filter.</p>'}</section>`;
 }
+function dailyStatusView(d){
+ if(isFreelancer(state.access))return '';
+ const r=dailyStatus({items:state.data.sched,updates:state.data.updates,projects:d.pm,clients:state.data.clients,today:today()}),t=r.totals;
+ const line=(x,extra)=>`<li><button class="title-button" data-open="${esc(x.project.id)}"${x.item?` data-target-item="${esc(x.item.id)}"`:''}>${esc(x.item?joinedNames(x.project.name,x.item.title):x.project.name)}</button>${extra?` <span class="daily-meta">${esc(extra)}</span>`:''}</li>`;
+ const owner=i=>d.mm[i.owner_id]?.name||'No owner';
+ const list=(rows,fn)=>rows.length?`<ul>${rows.map(fn).join('')}</ul>`:'<p class="muted">Nothing.</p>';
+ const block=(name,rows,fn)=>`<div class="daily-col"><h4>${name} <span class="number">${rows.length}</span></h4>${list(rows,fn)}</div>`;
+ const short=s=>{const x=String(s||'').replace(/\s+/g,' ').trim();return x.length>140?x.slice(0,137)+'...':x;};
+ return `<details class="daily-status" ${state.dailyOpen?'open':''}><summary><b>Daily status</b> <span class="daily-sum">${t.urgent} urgent · ${t.changed} changed · ${t.next} next few days · ${t.week} later this week</span></summary><p class="daily-note">By brand. Changed covers the last 24 business hours (since ${esc(stamp(r.since))} MT, weekends skipped) and counts any edit or note, so it is not proof of completion. Urgent, Next few days and Later this week never repeat a step.</p>${r.brands.map(b=>`<article class="daily-brand"><h3>${esc(b.name)}</h3><div class="daily-cols">${block('Urgent',b.urgent,x=>line(x,x.why+(x.due?' · '+fmtDate(x.due):'')+' · '+owner(x.item)))}${block('Changed (24 business hours)',b.changed,x=>line(x,x.kind==='step'?x.text+' · '+stamp(x.at):'note · '+stamp(x.at)+' · '+short(x.text)))}${block('Next few days',b.next,x=>line(x,fmtDate(x.due)+' · '+owner(x.item)))}${block('Later this week',b.week,x=>line(x,fmtDate(x.due)+' · '+owner(x.item)))}</div></article>`).join('')||'<p class="muted">No activity or dated work to show.</p>'}</details>`;
+}
 function todayView(d){
  const scope=isFreelancer(state.access)?'mine':state.workScope,first=d.identity.display_name?.trim().split(/\s+/)[0];
  const selected=state.data.sched.filter(i=>!projectIsDone(d.pm[i.project_id],d.pm)&&(scope==='team'||i.owner_id===d.aaron||(!isFreelancer(state.access)&&!i.owner_id)));
@@ -605,6 +616,7 @@ function bind(root){
  root.querySelectorAll('[data-work-filter]').forEach(b=>b.onclick=()=>{state.workFilter=b.dataset.workFilter;render();});
  root.querySelector('[data-my-hide-done]')?.addEventListener('change',e=>{state.myHideDone=e.target.checked;render();});
  root.querySelector('.finished-work')?.addEventListener('toggle',e=>{state.finishedOpen=e.target.open;});
+ root.querySelector('.daily-status')?.addEventListener('toggle',e=>{state.dailyOpen=e.target.open;});
  root.querySelector('[data-show-unassigned]')?.addEventListener('click',()=>{const el=root.querySelector('.workload-unassigned');if(el){el.open=true;el.scrollIntoView({block:'start'});}});
  root.querySelectorAll('[data-work-scope]').forEach(b=>b.onclick=()=>{state.workScope=b.dataset.workScope;state.workFilter=b.dataset.workScope==='mine'?'today':'all';render();});
  root.querySelectorAll('[data-workload-person]').forEach(b=>b.onclick=()=>{state.workloadMember=b.dataset.workloadPerson;render();});
@@ -650,7 +662,7 @@ function bind(root){
 function render(){
  quickSequence=0;const d=derive(), newest=state.data.updates[0]?.created_at;
  app.innerHTML=`<header class="site-header"><a class="brand brand-compact" href="#" id="home"><span class="brand-mark" aria-hidden="true">P</span><span>Monigle Production Team Workspace</span></a><div class="sync"><span class="live-dot"></span>${state.error?'Refresh failed. Showing last loaded data.':`Loaded ${state.loaded.toLocaleTimeString('en-US',{timeZone:TZ,hour:'numeric',minute:'2-digit'})} MT`}<button id="refresh" aria-label="Refresh data">↻</button><button id="signout">Sign out</button></div></header>
- <nav aria-label="Dashboard views">${[['today','My work'],...(!isFreelancer(state.access)?[['workload','Workload']]:[]),['projects','Projects'],['schedule','Schedule'],['recap','Recap']].map(([v,t])=>`<button data-view="${v}" ${state.view===v?'aria-current="page"':''}>${t}</button>`).join('')}${dashboardLegend()}</nav><main><div id="revisions-area">${revisionsView()}</div>${bulkToolbar()}<div id="comment-outbox-area">${outboxView()}</div>${state.view==='today'?todayView(d):state.view==='projects'?projectsView(d):state.view==='workload'&&!isFreelancer(state.access)?workloadView(d):state.view==='recap'?recapView(d):scheduleView(d)}</main><div class="footnote">Latest feed entry: ${newest?esc(stamp(newest))+' MT':'none recorded'}. Loading this page does not mean every project was checked.<br>Missing a change? Use Update on any project or schedule item.</div><dialog id="bulk-dialog" aria-label="Bulk step actions"></dialog><dialog id="detail" aria-labelledby="dialog-title"></dialog><dialog id="comment-dialog" aria-labelledby="comment-title"></dialog><dialog id="day-dialog" aria-labelledby="day-title"></dialog>`;
+ <nav aria-label="Dashboard views">${[['today','My work'],...(!isFreelancer(state.access)?[['workload','Workload']]:[]),['projects','Projects'],['schedule','Schedule'],['recap','Recap']].map(([v,t])=>`<button data-view="${v}" ${state.view===v?'aria-current="page"':''}>${t}</button>`).join('')}${dashboardLegend()}</nav><main>${dailyStatusView(d)}<div id="revisions-area">${revisionsView()}</div>${bulkToolbar()}<div id="comment-outbox-area">${outboxView()}</div>${state.view==='today'?todayView(d):state.view==='projects'?projectsView(d):state.view==='workload'&&!isFreelancer(state.access)?workloadView(d):state.view==='recap'?recapView(d):scheduleView(d)}</main><div class="footnote">Latest feed entry: ${newest?esc(stamp(newest))+' MT':'none recorded'}. Loading this page does not mean every project was checked.<br>Missing a change? Use Update on any project or schedule item.</div><dialog id="bulk-dialog" aria-label="Bulk step actions"></dialog><dialog id="detail" aria-labelledby="dialog-title"></dialog><dialog id="comment-dialog" aria-labelledby="comment-title"></dialog><dialog id="day-dialog" aria-labelledby="day-title"></dialog>`;
  bind(app);updateRevisionUI();updateSelectionUI();applyTimingWarnings();document.querySelector('#signout').onclick=()=>supabase.auth.signOut();document.querySelector('#refresh').onclick=load;document.querySelector('#home').onclick=e=>{e.preventDefault();state.view='today';render();};
  for(const [id,key] of [['member','member'],['client','client'],['status','status']])document.getElementById(id)?.addEventListener('change',e=>{state[key]=e.target.value;render();document.getElementById(id).focus();});
  document.getElementById('search')?.addEventListener('input',e=>{const pos=e.target.selectionStart;state.search=e.target.value;render();const el=document.getElementById('search');el.focus();el.setSelectionRange(pos,pos);});
