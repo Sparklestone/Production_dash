@@ -1,5 +1,5 @@
 import {dateKey,projectIsDone} from './schedule.js';
-import {weekWindow,shiftDate} from './insights.js';
+import {shiftDate} from './insights.js';
 
 // 24 business hours back from `now`: weekend hours do not count.
 // Monday 9:37am looks back to Friday 9:37am.
@@ -18,7 +18,7 @@ const blocked=i=>['blocked','waiting'].includes(i.status);
 // Each brand (client) gets four sections. Urgent, Next few days and This week
 // never repeat a step (highest priority wins); Changed is a log and may overlap.
 export function dailyStatus({items,updates=[],projects,clients=[],today,now=new Date(),nextDays=3}){
- const cm=Object.fromEntries(clients.map(c=>[c.id,c])),start=businessWindowStart(now).getTime(),{end}=weekWindow(today),horizon=shiftDate(today,nextDays);
+ const cm=Object.fromEntries(clients.map(c=>[c.id,c])),start=businessWindowStart(now).getTime(),end=shiftDate(today,7),horizon=shiftDate(today,nextDays);
  const rootOf=p=>{let n=p,s=0;while(n?.parent_id&&projects[n.parent_id]&&s++<20)n=projects[n.parent_id];return n;};
  const brands={};
  const brand=p=>{const root=rootOf(p),c=cm[p?.client_id]||cm[root?.client_id],name=c?.name||root?.name||'No client',key=c?.id||'p:'+(root?.id||'none');return brands[key]||(brands[key]={key,name,project_id:root?.id||p?.id,changed:[],urgent:[],next:[],week:[]});};

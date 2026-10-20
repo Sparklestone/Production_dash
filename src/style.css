@@ -454,3 +454,5 @@ textarea,.quick-entry textarea,.card-questions textarea,#comment-form textarea{m
 .daily-what{font-weight:600}.daily-proj{font-weight:400;color:var(--mut);font-size:12px}
 .workload-toolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:10px 0}
 .daily-chip{cursor:pointer;border-radius:8px;padding:2px 6px;text-decoration:underline dotted}.daily-chip:hover,.daily-chip[aria-pressed=true]{background:#e6f6ee}.daily-focus{margin:8px 0}
+
+.brief,.brief-steps{margin:0;padding:0;list-style:none}.brief-proj{padding:8px 0;border-top:1px solid var(--line)}.brief-proj:first-child{border-top:0}.brief-note{margin:4px 0;font-size:13px}.brief-steps{margin:4px 0 0 4px;font-size:13px}.brief-steps li{margin:3px 0;padding-left:12px;position:relative}.brief-steps li:before{content:'-';position:absolute;left:0;color:var(--mut)}.brief-tag{font-weight:600}.brief-urgent{color:#b3261e}.brief-done{color:#1b7a4b}
