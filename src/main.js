@@ -451,6 +451,8 @@ function workloadGroups(items,d){
  let g=byKey[rootKey];if(!g){g={project:root,subs:[],bySub:{},count:0};byKey[rootKey]=g;groups.push(g);}
  let s=g.bySub[sub];if(!s){s={name:sub,items:[]};g.bySub[sub]=s;g.subs.push(s);}
  s.items.push(i);g.count++;});
+ // Direct project steps (sub key '') always list before subproject groups.
+ for(const g of groups)g.subs.sort((a,b)=>(a.name===''?0:1)-(b.name===''?0:1));
  return groups;
 }
 function workloadPeriod(){const anchor=state.calendarAnchor||today(),mode=state.calendarMode;return {anchor,mode,axis:ganttAxis(anchor,mode,{week:12,month:6,'2mo':4,quarter:3,year:2}[mode]||4)};}
