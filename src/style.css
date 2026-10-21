@@ -457,3 +457,6 @@ textarea,.quick-entry textarea,.card-questions textarea,#comment-form textarea{m
 
 .brief,.brief-steps{margin:0;padding:0;list-style:none}.brief-proj{padding:8px 0;border-top:2px solid var(--line)}.brief-proj:first-child{border-top:0}.brief-note{margin:4px 0;font-size:13px}.brief-steps{margin:4px 0 0 4px;font-size:13px}.brief-steps li{margin:3px 0;padding-left:12px;position:relative}.brief-steps li:before{content:'-';position:absolute;left:0;color:var(--mut)}.brief-tag{font-weight:600}.brief-urgent{color:#b3261e}.brief-done{color:#1b7a4b}
 .daily-cx{font-size:12px;font-weight:400;color:var(--mut);margin-left:8px}.co-owners{margin:6px 0;font-size:13px}.co-owner-opt{display:inline-flex;gap:4px;margin:2px 10px 2px 0;align-items:center}.cx-edit{display:inline-flex;gap:6px;align-items:center;font-size:13px}.cx-edit input{min-width:220px}
+
+/* Perf: skip layout/paint for offscreen cards and sections; they render as they scroll into view. */
+.task-card,.finished-task,.past-due-item,.work-bucket,.daily-brand,.assignment-group,.page-step-group,.workload-project-group{content-visibility:auto;contain-intrinsic-size:auto 140px;}
