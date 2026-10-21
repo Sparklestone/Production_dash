@@ -1,4 +1,5 @@
 import {dateKey,projectIsDone} from './schedule.js';
+import {ownerNames,projectCx} from './step-assignment.js';
 import {shiftDate} from './insights.js';
 
 // 24 business hours back from `now`: weekend hours do not count.
@@ -45,4 +46,43 @@ export function dailyStatus({items,updates=[],projects,clients=[],today,now=new 
  for(const b of list){b.urgent.sort(byDue);b.next.sort(byDue);b.week.sort(byDue);b.changed.sort((x,y)=>y.at.localeCompare(x.at));}
  list.sort((a,b)=>b.urgent.length-a.urgent.length||a.name.localeCompare(b.name));
  return {brands:list,since:new Date(start),totals:list.reduce((t,b)=>({changed:t.changed+b.changed.length,urgent:t.urgent+b.urgent.length,next:t.next+b.next.length,week:t.week+b.week.length}),{changed:0,urgent:0,next:0,week:0})};
+}
+
+// Plain-text outline of the daily status, for pasting into Teams. Same grouping
+// and order as the on-screen briefing: brand with CX, then per-project [Daily]
+// notes and step lines "step - owner - Due Oct 23 / Past due / Blocked / Done".
+const OUTLINE_MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const outlineDate=d=>{if(!d)return '';const[,m,day]=d.split('-');return `${OUTLINE_MONTHS[+m-1]} ${+day}`;};
+const outlineProjects=(b)=>{
+ const projs=new Map();
+ const get=p=>projs.get(p.id)||(projs.set(p.id,{p,notes:[],done:[],steps:[]}),projs.get(p.id));
+ for(const x of b.changed){const g=get(x.project);(x.kind==='note'?g.notes:g.done).push(x);}
+ for(const [k,rows] of [['urgent',b.urgent],['next',b.next],['week',b.week]])for(const x of rows)get(x.project).steps.push({...x,cat:k});
+ const rank=g=>g.steps.some(s=>s.cat==='urgent')?0:1,first=g=>g.steps.map(s=>s.due||'9999').sort()[0]||'9999';
+ return [...projs.values()].sort((x,y)=>rank(x)-rank(y)||first(x).localeCompare(first(y))||x.p.name.localeCompare(y.p.name));
+};
+const projectLines=(g,owner)=>{
+ const lines=[g.p.name];
+ for(const n of g.notes)lines.push(n.text);
+ for(const x of g.steps.sort((a,b)=>(a.due||'9999').localeCompare(b.due||'9999')))
+  lines.push(`${x.item.title} - ${owner(x.item)} - ${x.cat==='urgent'?x.why:'Due'}${x.due?' '+outlineDate(x.due):''}`);
+ for(const x of g.done)lines.push(`${x.item.title} - ${owner(x.item)} - Done`);
+ return lines;
+};
+// One brand (optionally one project within it) as outline text.
+export function brandOutline(b,{projects,mm,projectId}={}){
+ const owner=i=>ownerNames(i,mm||{},'No owner');
+ let gs=outlineProjects(b);
+ if(projectId)gs=gs.filter(g=>g.p.id===projectId);
+ if(!gs.length)return '';
+ const cx=projectCx(projects?.[projectId||b.project_id],projects||{});
+ const named=projectId?gs[0].p.name:b.name;
+ const head=cx.length?`${named}: CX ${cx.join(', ')}`:named;
+ const lines=[head,''];
+ for(const g of gs){lines.push(...(projectId?projectLines(g,owner).slice(1):projectLines(g,owner)),'');}
+ return lines.join('\n').trim();
+};
+// Every brand, in panel order, separated by a blank line.
+export function statusOutline({brands},{projects,mm}={}){
+ return brands.map(b=>brandOutline(b,{projects,mm})).filter(Boolean).join('\n\n');
 }
