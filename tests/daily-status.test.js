@@ -50,3 +50,24 @@ test('statusOutline renders brand/CX head, notes, owner and date tags',()=>{
  assert.ok(proj.startsWith('Logo: CX Riley'),'project copy head: '+proj.split('\n')[0]);
  assert.ok(!proj.includes('Zed'),'project copy scoped');
 });
+
+import {statusOutlineHtml,brandOutlineHtml} from '../src/daily-status.js';
+test('outline spacing and HTML hierarchy for Teams paste',()=>{
+ const projects={p:{id:'p',name:'Logo',client_id:'c',status:'active',cx:['Riley']},q:{id:'q',name:'Deck',client_id:'d',status:'active'}};
+ const clients=[{id:'c',name:'Acme'},{id:'d',name:'Zed'}];
+ const mm={m1:{id:'m1',name:'Aaron F.'}};
+ const items=[
+  {id:'1',project_id:'p',title:'Kickoff & deck',status:'pending',due_date:'2026-10-17',owner_id:'m1'},
+  {id:'3',project_id:'q',title:'Print',status:'pending',due_date:'2026-10-23',owner_id:null}];
+ const r=ds2({items,updates:[],projects,clients,today:'2026-10-19',now});
+ const text=statusOutline(r,{projects,mm});
+ assert.ok(text.includes('\n\n\n'),'triple break between brands: '+JSON.stringify(text.slice(0,200)));
+ assert.ok(text.includes('Acme: CX Riley\n\nLogo\n'),'blank line under brand head');
+ const html=statusOutlineHtml(r,{projects,mm});
+ assert.ok(html.includes('<p><b>Acme: CX Riley</b></p>'),'brand head bold: '+html.slice(0,200));
+ assert.ok(html.includes('<p><b>Logo</b><br>Kickoff &amp; deck - Aaron F. - Past due Oct 17</p>'),'project block: '+html);
+ assert.ok(html.includes('<p><br></p>'),'empty paragraph between brands');
+ const projHtml=brandOutlineHtml(r.brands.find(b=>b.name==='Acme'),{projects,mm,projectId:'p'});
+ assert.ok(projHtml.startsWith('<p><b>Logo: CX Riley</b></p>'),'project-scoped head: '+projHtml);
+ assert.ok(!projHtml.includes('Zed'),'project html scoped');
+});

@@ -10,7 +10,7 @@ import {projectPath,displayProjectPath,workstreamLabel,flatProjectBranches} from
 import {stepStatusOptions,statusChoice,saveStepStatus} from './step-status.js';
 import {statusLabel} from './status-labels.js';
 import {unresolvedPastDue} from './past-due.js';
-import {dailyStatus,statusOutline,brandOutline} from './daily-status.js';
+import {dailyStatus,statusOutline,brandOutline,statusOutlineHtml,brandOutlineHtml} from './daily-status.js';
 import {ownerNames,saveStepCoOwners,saveProjectCx,projectCx} from './step-assignment.js';
 import {visibleCards} from './hide-done.js';
 import {pendingRevisions,revisionTargets} from './revisions.js';
@@ -664,11 +664,14 @@ function bind(root){
  root.querySelectorAll('.daily-copy').forEach(btn=>btn.addEventListener('click',async e=>{
   e.preventDefault();e.stopPropagation();
   const d=derive(),r=currentDaily(d);
-  let text='';
-  if(btn.hasAttribute('data-copy-status'))text=statusOutline(r,{projects:d.pm,mm:d.mm});
-  else{const b=r.brands.find(x=>x.key===btn.dataset.copyBrand);if(b)text=brandOutline(b,{projects:d.pm,mm:d.mm,projectId:btn.dataset.copyProject||''});}
+  let text='',html='';
+  if(btn.hasAttribute('data-copy-status')){text=statusOutline(r,{projects:d.pm,mm:d.mm});html=statusOutlineHtml(r,{projects:d.pm,mm:d.mm});}
+  else{const b=r.brands.find(x=>x.key===btn.dataset.copyBrand);if(b){const opts={projects:d.pm,mm:d.mm,projectId:btn.dataset.copyProject||''};text=brandOutline(b,opts);html=brandOutlineHtml(b,opts);}}
   if(!text)return;
-  try{await navigator.clipboard.writeText(text);}catch{const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');}finally{ta.remove();}}
+  try{
+   if(window.ClipboardItem&&navigator.clipboard.write)await navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([text],{type:'text/plain'})})]);
+   else await navigator.clipboard.writeText(text);
+  }catch{const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');}finally{ta.remove();}}
   if(!btn.dataset.copyLabel)btn.dataset.copyLabel=btn.textContent;
   btn.textContent='Copied';setTimeout(()=>{btn.textContent=btn.dataset.copyLabel;},2000);
  }));

@@ -48,11 +48,14 @@ export function dailyStatus({items,updates=[],projects,clients=[],today,now=new 
  return {brands:list,since:new Date(start),totals:list.reduce((t,b)=>({changed:t.changed+b.changed.length,urgent:t.urgent+b.urgent.length,next:t.next+b.next.length,week:t.week+b.week.length}),{changed:0,urgent:0,next:0,week:0})};
 }
 
-// Plain-text outline of the daily status, for pasting into Teams. Same grouping
-// and order as the on-screen briefing: brand with CX, then per-project [Daily]
-// notes and step lines "step - owner - Due Oct 23 / Past due / Blocked / Done".
+// Plain-text and HTML outlines of the daily status, for pasting into Teams.
+// Same grouping and order as the on-screen briefing: brand with CX, then
+// per-project [Daily] notes and step lines "step - owner - Due Oct 23 /
+// Past due / Blocked / Done". Text uses blank lines for hierarchy (double
+// between projects, triple between brands); HTML bolds brand/project heads.
 const OUTLINE_MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const outlineDate=d=>{if(!d)return '';const[,m,day]=d.split('-');return `${OUTLINE_MONTHS[+m-1]} ${+day}`;};
+const outlineEsc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const outlineProjects=(b)=>{
  const projs=new Map();
  const get=p=>projs.get(p.id)||(projs.set(p.id,{p,notes:[],done:[],steps:[]}),projs.get(p.id));
@@ -61,28 +64,45 @@ const outlineProjects=(b)=>{
  const rank=g=>g.steps.some(s=>s.cat==='urgent')?0:1,first=g=>g.steps.map(s=>s.due||'9999').sort()[0]||'9999';
  return [...projs.values()].sort((x,y)=>rank(x)-rank(y)||first(x).localeCompare(first(y))||x.p.name.localeCompare(y.p.name));
 };
-const projectLines=(g,owner)=>{
- const lines=[g.p.name];
- for(const n of g.notes)lines.push(n.text);
- for(const x of g.steps.sort((a,b)=>(a.due||'9999').localeCompare(b.due||'9999')))
-  lines.push(`${x.item.title} - ${owner(x.item)} - ${x.cat==='urgent'?x.why:'Due'}${x.due?' '+outlineDate(x.due):''}`);
- for(const x of g.done)lines.push(`${x.item.title} - ${owner(x.item)} - Done`);
- return lines;
-};
-// One brand (optionally one project within it) as outline text.
-export function brandOutline(b,{projects,mm,projectId}={}){
+const outlineModel=(b,{projects,mm,projectId}={})=>{
  const owner=i=>ownerNames(i,mm||{},'No owner');
  let gs=outlineProjects(b);
  if(projectId)gs=gs.filter(g=>g.p.id===projectId);
- if(!gs.length)return '';
+ if(!gs.length)return null;
  const cx=projectCx(projects?.[projectId||b.project_id],projects||{});
  const named=projectId?gs[0].p.name:b.name;
  const head=cx.length?`${named}: CX ${cx.join(', ')}`:named;
- const lines=[head,''];
- for(const g of gs){lines.push(...(projectId?projectLines(g,owner).slice(1):projectLines(g,owner)),'');}
- return lines.join('\n').trim();
+ const groups=gs.map(g=>{
+  const lines=[];
+  for(const n of g.notes)lines.push(n.text);
+  for(const x of g.steps.sort((a,b2)=>(a.due||'9999').localeCompare(b2.due||'9999')))
+   lines.push(`${x.item.title} - ${owner(x.item)} - ${x.cat==='urgent'?x.why:'Due'}${x.due?' '+outlineDate(x.due):''}`);
+  for(const x of g.done)lines.push(`${x.item.title} - ${owner(x.item)} - Done`);
+  return {name:g.p.name,lines};
+ });
+ return {head,groups,projectScoped:!!projectId};
 };
-// Every brand, in panel order, separated by a blank line.
+const modelText=m=>{
+ const blocks=[m.head,''];
+ for(const g of m.groups)blocks.push(...(m.projectScoped?g.lines:[g.name,...g.lines]),'');
+ return blocks.join('\n').trim();
+};
+const modelHtml=m=>{
+ const parts=[`<p><b>${outlineEsc(m.head)}</b></p>`];
+ for(const g of m.groups){
+  const body=g.lines.map(outlineEsc).join('<br>');
+  parts.push(m.projectScoped?`<p>${body}</p>`:`<p><b>${outlineEsc(g.name)}</b><br>${body}</p>`);
+ }
+ return parts.join('');
+};
+// One brand (optionally one project within it).
+export function brandOutline(b,opts={}){const m=outlineModel(b,opts);return m?modelText(m):'';}
+export function brandOutlineHtml(b,opts={}){const m=outlineModel(b,opts);return m?modelHtml(m):'';}
+// Every brand, in panel order, separated by a triple break (text) or an empty
+// paragraph (HTML) so brands read as separate cards when pasted.
 export function statusOutline({brands},{projects,mm}={}){
- return brands.map(b=>brandOutline(b,{projects,mm})).filter(Boolean).join('\n\n');
+ return brands.map(b=>brandOutline(b,{projects,mm})).filter(Boolean).join('\n\n\n');
+}
+export function statusOutlineHtml({brands},{projects,mm}={}){
+ return brands.map(b=>brandOutlineHtml(b,{projects,mm})).filter(Boolean).join('<p><br></p>');
 }
