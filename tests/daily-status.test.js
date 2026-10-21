@@ -38,8 +38,9 @@ test('statusOutline renders brand/CX head, notes, owner and date tags',()=>{
  const text=statusOutline(r,{projects,mm});
  const lines=text.split('\n');
  assert.ok(lines.includes('Acme: CX Riley'),'head: '+lines[0]);
- assert.ok(lines.includes('Logo'),'project line');
- assert.ok(lines.includes('files moved'),'note line');
+ assert.ok(!lines.includes('Logo'),'root project header merged into brand head: '+lines.join('|'));
+ assert.ok(lines.indexOf('files moved')===lines.indexOf('Acme: CX Riley')+2,'note straight under brand head: '+lines.join('|'));
+ assert.ok(lines.indexOf('files moved')<lines.indexOf('Print - No owner - Due Oct 23'),'root project content before subprojects');
  assert.ok(lines.includes('Kickoff deck - Aaron F. - Past due Oct 17'),'past due line: '+text);
  assert.ok(lines.includes('Build - Aaron F. & Pat M. - Blocked'),'blocked co-owner line: '+text);
  assert.ok(lines.includes('Old step - Pat M. - Done'),'done line: '+text);
@@ -62,10 +63,10 @@ test('outline spacing and HTML hierarchy for Teams paste',()=>{
  const r=ds2({items,updates:[],projects,clients,today:'2026-10-19',now});
  const text=statusOutline(r,{projects,mm});
  assert.ok(text.includes('\n\n\n'),'triple break between brands: '+JSON.stringify(text.slice(0,200)));
- assert.ok(text.includes('Acme: CX Riley\n\nLogo\n'),'blank line under brand head');
+ assert.ok(text.includes('Acme: CX Riley\n\nKickoff & deck - Aaron F. - Past due Oct 17\n'),'root project content merged under brand head: '+JSON.stringify(text.slice(0,200)));
  const html=statusOutlineHtml(r,{projects,mm});
- assert.ok(html.includes('<p><b>Acme: CX Riley</b></p>'),'brand head bold: '+html.slice(0,200));
- assert.ok(html.includes('<p><b>Logo</b><br>Kickoff &amp; deck - Aaron F. - Past due Oct 17</p>'),'project block: '+html);
+ assert.ok(html.includes('<p><b>Acme: CX Riley</b><br>Kickoff &amp; deck - Aaron F. - Past due Oct 17</p>'),'root project folds into brand head paragraph: '+html.slice(0,300));
+ assert.ok(!html.includes('<p><b>Logo</b>'),'no duplicate root project head: '+html.slice(0,300));
  assert.ok(html.includes('<p><br></p>'),'empty paragraph between brands');
  const projHtml=brandOutlineHtml(r.brands.find(b=>b.name==='Acme'),{projects,mm,projectId:'p'});
  assert.ok(projHtml.startsWith('<p><b>Logo: CX Riley</b></p>'),'project-scoped head: '+projHtml);

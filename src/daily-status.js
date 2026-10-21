@@ -62,7 +62,9 @@ const outlineProjects=(b)=>{
  for(const x of b.changed){const g=get(x.project);(x.kind==='note'?g.notes:g.done).push(x);}
  for(const [k,rows] of [['urgent',b.urgent],['next',b.next],['week',b.week]])for(const x of rows)get(x.project).steps.push({...x,cat:k});
  const rank=g=>g.steps.some(s=>s.cat==='urgent')?0:1,first=g=>g.steps.map(s=>s.due||'9999').sort()[0]||'9999';
- return [...projs.values()].sort((x,y)=>rank(x)-rank(y)||first(x).localeCompare(first(y))||x.p.name.localeCompare(y.p.name));
+ // The brand's root project (direct steps) lists first, matching the panel.
+ const root=g=>g.p.id===b.project_id?0:1;
+ return [...projs.values()].sort((x,y)=>root(x)-root(y)||rank(x)-rank(y)||first(x).localeCompare(first(y))||x.p.name.localeCompare(y.p.name));
 };
 const outlineModel=(b,{projects,mm,projectId}={})=>{
  const owner=i=>ownerNames(i,mm||{},'No owner');
@@ -78,20 +80,21 @@ const outlineModel=(b,{projects,mm,projectId}={})=>{
   for(const x of g.steps.sort((a,b2)=>(a.due||'9999').localeCompare(b2.due||'9999')))
    lines.push(`${x.item.title} - ${owner(x.item)} - ${x.cat==='urgent'?x.why:'Due'}${x.due?' '+outlineDate(x.due):''}`);
   for(const x of g.done)lines.push(`${x.item.title} - ${owner(x.item)} - Done`);
-  return {name:g.p.name,lines};
+  return {name:g.p.name,merged:!projectId&&g.p.id===b.project_id,lines};
  });
  return {head,groups,projectScoped:!!projectId};
 };
 const modelText=m=>{
  const blocks=[m.head,''];
- for(const g of m.groups)blocks.push(...(m.projectScoped?g.lines:[g.name,...g.lines]),'');
+ for(const g of m.groups)blocks.push(...((m.projectScoped||g.merged)?g.lines:[g.name,...g.lines]),'');
  return blocks.join('\n').trim();
 };
 const modelHtml=m=>{
  const parts=[`<p><b>${outlineEsc(m.head)}</b></p>`];
  for(const g of m.groups){
   const body=g.lines.map(outlineEsc).join('<br>');
-  parts.push(m.projectScoped?`<p>${body}</p>`:`<p><b>${outlineEsc(g.name)}</b><br>${body}</p>`);
+  if(!g.merged||!body){parts.push(m.projectScoped?`<p>${body}</p>`:`<p><b>${outlineEsc(g.name)}</b><br>${body}</p>`);continue;}
+  parts[0]=`<p><b>${outlineEsc(m.head)}</b><br>${body}</p>`;
  }
  return parts.join('');
 };
