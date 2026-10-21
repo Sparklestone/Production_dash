@@ -72,3 +72,40 @@ test('outline spacing and HTML hierarchy for Teams paste',()=>{
  assert.ok(projHtml.startsWith('<p><b>Logo: CX Riley</b></p>'),'project-scoped head: '+projHtml);
  assert.ok(!projHtml.includes('Zed'),'project html scoped');
 });
+
+import {doneWindowStart,dayKey} from '../src/daily-status.js';
+test('doneWindowStart spans 5 working days, skipping weekends',()=>{
+ assert.equal(doneWindowStart('2026-10-21'),'2026-10-15'); // Wed: 15,16,19,20,21
+ assert.equal(doneWindowStart('2026-10-19'),'2026-10-13'); // Mon: 13,14,15,16,19
+ assert.equal(doneWindowStart('2026-10-26'),'2026-10-20'); // next Mon: 20,21,22,23,26
+});
+test('Done subsection lists steps completed in the last 5 working days',()=>{
+ const projects={p:{id:'p',name:'Logo',client_id:'c',status:'active',cx:[]},q:{id:'q',name:'Deck',client_id:'d',status:'active'}};
+ const clients=[{id:'c',name:'Acme'},{id:'d',name:'Zed'}];
+ const mm={m2:{id:'m2',name:'Pat M.'}};
+ const items=[
+  {id:'1',project_id:'p',title:'Recent fix',status:'done',updated_at:'2026-10-20T15:00:00Z',owner_id:'m2'},
+  {id:'2',project_id:'p',title:'Friday fix',status:'done',updated_at:'2026-10-16T20:00:00Z',owner_id:null},
+  {id:'3',project_id:'p',title:'Edge fix',status:'done',updated_at:'2026-10-15T14:00:00Z',owner_id:null},
+  {id:'4',project_id:'p',title:'Too old',status:'done',updated_at:'2026-10-14T23:00:00Z',owner_id:null},
+  {id:'5',project_id:'p',title:'RETIRED (client pause): Old ask',status:'done',updated_at:'2026-10-20T15:00:00Z',owner_id:null},
+  {id:'6',project_id:'q',title:'Open step',status:'pending',due_date:'2026-10-22',owner_id:null}];
+ const r=dailyStatus({items,updates:[],projects,clients,today:'2026-10-21',now:new Date('2026-10-21T16:00:00Z')});
+ const acme=r.brands.find(b=>b.name==='Acme');
+ assert.deepEqual(acme.rdone.map(x=>x.item.id),['1','2','3'],'in-window done only, newest first: '+JSON.stringify(acme.rdone.map(x=>x.item.id)));
+ const text=statusOutline(r,{projects,mm});
+ const lines=text.split('\n');
+ const head=lines.indexOf('Done (last 5 working days):');
+ assert.ok(head>-1,'Done subsection present: '+text);
+ assert.ok(lines.includes('Recent fix - Pat M. - Done Oct 20'),'owner + done date: '+text);
+ assert.ok(lines.includes('Edge fix - No owner - Done Oct 15'),'window edge included: '+text);
+ assert.ok(!text.includes('Too old'),'older than 5 working days excluded');
+ assert.ok(!text.includes('RETIRED'),'retired excluded');
+ assert.ok(lines.indexOf('Recent fix - Pat M. - Done Oct 20')>head,'done lines under the subsection head');
+ const proj=brandOutline(acme,{projects,mm,projectId:'p'});
+ assert.ok(proj.includes('Done (last 5 working days):'),'project-scoped copy includes Done subsection');
+ assert.ok(!proj.includes('Open step - No owner - Due Oct 22'),'project scoping still holds');
+ const html=statusOutlineHtml(r,{projects,mm});
+ assert.ok(html.includes('Done (last 5 working days):'),'HTML copy includes Done subsection');
+ assert.equal(dayKey(new Date('2026-10-21T05:59:00Z').getTime()),'2026-10-20','late-night UTC still prior Denver day');
+});

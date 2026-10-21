@@ -10,7 +10,7 @@ import {projectPath,displayProjectPath,workstreamLabel,flatProjectBranches} from
 import {stepStatusOptions,statusChoice,saveStepStatus} from './step-status.js';
 import {statusLabel} from './status-labels.js';
 import {unresolvedPastDue} from './past-due.js';
-import {dailyStatus,statusOutline,brandOutline,statusOutlineHtml,brandOutlineHtml} from './daily-status.js';
+import {dailyStatus,statusOutline,brandOutline,statusOutlineHtml,brandOutlineHtml,dayKey} from './daily-status.js';
 import {ownerNames,saveStepCoOwners,saveProjectCx,projectCx} from './step-assignment.js';
 import {visibleCards} from './hide-done.js';
 import {pendingRevisions,revisionTargets} from './revisions.js';
@@ -420,15 +420,16 @@ function briefing(b,d){
  const owner=i=>ownerNames(i,d.mm,"No owner");
  const keep=k=>!state.dailyFocus||state.dailyFocus===k;
  const projs=new Map();
- const get=p=>projs.get(p.id)||(projs.set(p.id,{p,notes:[],done:[],steps:[]}),projs.get(p.id));
+ const get=p=>projs.get(p.id)||(projs.set(p.id,{p,notes:[],done:[],steps:[],rdone:[]}),projs.get(p.id));
  for(const x of b.changed)if(keep('changed')){const g=get(x.project);(x.kind==='note'?g.notes:g.done).push(x);}
+ for(const x of b.rdone||[])get(x.project).rdone.push(x);
  for(const [k,rows] of [['urgent',b.urgent],['next',b.next],['week',b.week]])if(keep(k))for(const x of rows)get(x.project).steps.push({...x,cat:k});
  const rank=g=>g.steps.some(s=>s.cat==='urgent')?0:1,first=g=>g.steps.map(s=>s.due||'9999').sort()[0]||'9999';
  // The brand's root project (direct steps, no subproject) lists first, merged
  // under the brand header - its own header row would duplicate the brand.
  const root=g=>g.p.id===b.project_id?0:1;
  const gs=[...projs.values()].sort((x,y)=>root(x)-root(y)||rank(x)-rank(y)||first(x).localeCompare(first(y))||x.p.name.localeCompare(y.p.name));
- return `<ul class="brief">${gs.map(g=>`<li class="brief-proj">${g.p.id===b.project_id?'':`<div class="daily-line"><b><button class="title-button" data-open="${esc(g.p.id)}">${esc(g.p.name)}</button></b>${commentButton(g.p,null)} <button class="comment daily-copy" data-copy-brand="${esc(b.key)}" data-copy-project="${esc(g.p.id)}">Copy text</button></div>`}${g.notes.map(n=>`<p class="brief-note">${esc(n.text)} <span class="daily-meta">${esc(stamp(n.at))}</span></p>`).join('')}<ul class="brief-steps">${g.steps.sort((x,y)=>(x.due||'9999').localeCompare(y.due||'9999')).map(x=>`<li><button class="title-button" data-open="${esc(x.project.id)}" data-target-item="${esc(x.item.id)}">${esc(x.item.title)}</button> - ${esc(owner(x.item))} - <span class="brief-tag brief-${x.cat}">${esc(x.cat==='urgent'?x.why:'Due')}</span>${x.due?' '+esc(fmtDate(x.due)):''}</li>`).join('')}${g.done.map(x=>`<li><button class="title-button" data-open="${esc(x.project.id)}" data-target-item="${esc(x.item.id)}">${esc(x.item.title)}</button> - ${esc(owner(x.item))} - <span class="brief-tag brief-done">Done</span> ${esc(stamp(x.at))}</li>`).join('')}</ul></li>`).join('')}</ul>`;
+ return `<ul class="brief">${gs.map(g=>`<li class="brief-proj">${g.p.id===b.project_id?'':`<div class="daily-line"><b><button class="title-button" data-open="${esc(g.p.id)}">${esc(g.p.name)}</button></b>${commentButton(g.p,null)} <button class="comment daily-copy" data-copy-brand="${esc(b.key)}" data-copy-project="${esc(g.p.id)}">Copy text</button></div>`}${g.notes.map(n=>`<p class="brief-note">${esc(n.text)} <span class="daily-meta">${esc(stamp(n.at))}</span></p>`).join('')}<ul class="brief-steps">${g.steps.sort((x,y)=>(x.due||'9999').localeCompare(y.due||'9999')).map(x=>`<li><button class="title-button" data-open="${esc(x.project.id)}" data-target-item="${esc(x.item.id)}">${esc(x.item.title)}</button> - ${esc(owner(x.item))} - <span class="brief-tag brief-${x.cat}">${esc(x.cat==='urgent'?x.why:'Due')}</span>${x.due?' '+esc(fmtDate(x.due)):''}</li>`).join('')}${g.done.map(x=>`<li><button class="title-button" data-open="${esc(x.project.id)}" data-target-item="${esc(x.item.id)}">${esc(x.item.title)}</button> - ${esc(owner(x.item))} - <span class="brief-tag brief-done">Done</span> ${esc(stamp(x.at))}</li>`).join('')}${g.rdone.length?`<li class="brief-done-subhead">Done (last 5 working days)</li>`+g.rdone.map(x=>`<li><button class="title-button" data-open="${esc(x.project.id)}" data-target-item="${esc(x.item.id)}">${esc(x.item.title)}</button> - ${esc(owner(x.item))} - <span class="brief-tag brief-done">Done</span> ${esc(fmtDate(dayKey(new Date(x.at).getTime())))}</li>`).join(''):''}</ul></li>`).join('')}</ul>`;
 }
 function currentDaily(d){
  const memoKey=[state.data,today(),Math.floor(Date.now()/60000)];
