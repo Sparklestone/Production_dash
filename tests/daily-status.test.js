@@ -65,12 +65,25 @@ test('outline spacing and HTML hierarchy for Teams paste',()=>{
  assert.ok(text.includes('\n\n\n'),'triple break between brands: '+JSON.stringify(text.slice(0,200)));
  assert.ok(text.includes('Acme: CX Riley\n\nKickoff & deck - Aaron F. - Past due Oct 17\n'),'root project content merged under brand head: '+JSON.stringify(text.slice(0,200)));
  const html=statusOutlineHtml(r,{projects,mm});
- assert.ok(html.includes('<p><b>Acme: CX Riley</b><br>Kickoff &amp; deck - Aaron F. - Past due Oct 17</p>'),'root project folds into brand head paragraph: '+html.slice(0,300));
+ assert.ok(html.includes('<p><b><a href="https://productiondash.vercel.app/#project=p">Acme: CX Riley</a></b><br>Kickoff &amp; deck - Aaron F. - Past due Oct 17</p>'),'root project folds into linked brand head paragraph: '+html.slice(0,300));
  assert.ok(!html.includes('<p><b>Logo</b>'),'no duplicate root project head: '+html.slice(0,300));
  assert.ok(html.includes('<p><br></p>'),'empty paragraph between brands');
  const projHtml=brandOutlineHtml(r.brands.find(b=>b.name==='Acme'),{projects,mm,projectId:'p'});
- assert.ok(projHtml.startsWith('<p><b>Logo: CX Riley</b></p>'),'project-scoped head: '+projHtml);
+ assert.ok(projHtml.startsWith('<p><b><a href="https://productiondash.vercel.app/#project=p">Logo: CX Riley</a></b></p>'),'project-scoped linked head: '+projHtml);
  assert.ok(!projHtml.includes('Zed'),'project html scoped');
+});
+test('subproject and brand heads link to their cards in HTML copy',()=>{
+ const projects={p:{id:'p',name:'Illustrations',client_id:'c',status:'active'},s:{id:'s',name:'Social Ads',client_id:'c',status:'active',parent_id:'p'}};
+ const clients=[{id:'c',name:'DPP'}];
+ const items=[
+  {id:'1',project_id:'p',title:'Root work',status:'pending',due_date:'2026-10-23',owner_id:null},
+  {id:'2',project_id:'s',title:'Intake',status:'blocked',due_date:null,owner_id:null}];
+ const r=ds2({items,updates:[],projects,clients,today:'2026-10-19',now});
+ const html=statusOutlineHtml(r,{projects,mm:{}});
+ assert.ok(html.includes('<b><a href="https://productiondash.vercel.app/#project=p">DPP</a></b>'),'brand head links to root card: '+html);
+ assert.ok(html.includes('<b><a href="https://productiondash.vercel.app/#project=s">Social Ads</a></b>'),'subproject head links to its card: '+html);
+ const text=statusOutline(r,{projects,mm:{}});
+ assert.ok(!text.includes('http'),'plain text copy stays link-free');
 });
 
 import {doneWindowStart,dayKey} from '../src/daily-status.js';

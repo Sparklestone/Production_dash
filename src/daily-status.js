@@ -91,9 +91,9 @@ const outlineModel=(b,{projects,mm,projectId}={})=>{
    lines.push(`${x.item.title} - ${owner(x.item)} - ${x.cat==='urgent'?x.why:'Due'}${x.due?' '+outlineDate(x.due):''}`);
   for(const x of g.done)lines.push(`${x.item.title} - ${owner(x.item)} - Done`);
   if(g.rdone?.length){lines.push('Done (last 5 working days):');for(const x of g.rdone)lines.push(`${x.item.title} - ${owner(x.item)} - Done ${outlineDate(dayKey(new Date(x.at).getTime()))}`);}
-  return {name:g.p.name,merged:!projectId&&g.p.id===b.project_id,lines};
+  return {name:g.p.name,id:g.p.id,merged:!projectId&&g.p.id===b.project_id,lines};
  });
- return {head,groups,projectScoped:!!projectId};
+ return {head,headId:(projectId?gs[0].p.id:b.project_id)||null,groups,projectScoped:!!projectId};
 };
 const modelText=m=>{
  const blocks=[m.head,''];
@@ -101,11 +101,12 @@ const modelText=m=>{
  return blocks.join('\n').trim();
 };
 const modelHtml=m=>{
- const parts=[`<p><b>${outlineEsc(m.head)}</b></p>`];
+ const link=(id,text)=>id?`<a href="https://productiondash.vercel.app/#project=${id}">${text}</a>`:text;
+ const parts=[`<p><b>${link(m.headId,outlineEsc(m.head))}</b></p>`];
  for(const g of m.groups){
   const body=g.lines.map(outlineEsc).join('<br>');
-  if(!g.merged||!body){parts.push(m.projectScoped?`<p>${body}</p>`:`<p><b>${outlineEsc(g.name)}</b><br>${body}</p>`);continue;}
-  parts[0]=`<p><b>${outlineEsc(m.head)}</b><br>${body}</p>`;
+  if(!g.merged||!body){parts.push(m.projectScoped?`<p>${body}</p>`:`<p><b>${link(g.id,outlineEsc(g.name))}</b><br>${body}</p>`);continue;}
+  parts[0]=`<p><b>${link(m.headId,outlineEsc(m.head))}</b><br>${body}</p>`;
  }
  return parts.join('');
 };
