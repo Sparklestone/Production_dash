@@ -15,3 +15,9 @@ export function flatProjectBranches(project,projects,hideDone=false){
 
 // Workstreams are displayed exactly one level under the root project.
 export function displayProjectPath(project,projects){const path=projectPath(project,projects);return path.length>2?[path[0],path.at(-1)]:path;}
+
+// Brand for a card: the project's own client, else the root project's client.
+export function brandClient(project,projects,clients){
+ const root=projectPath(project,projects)[0]||project;
+ return clients?.[project.client_id]||clients?.[root?.client_id]||null;
+}
