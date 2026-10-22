@@ -6,7 +6,7 @@ import {officeHolidays,officeHolidayCoverage} from './office-holidays.js';
 import {timingPlan,schedulingIssues,shiftWorkDays,dueChange,isWorkDay} from './timing.js';
 import {saveWorkDays,suggestedDateLabel} from './work-days.js';
 import {selectedSteps,workstreamChoices,applyBulk} from './bulk-actions.js';
-import {projectPath,displayProjectPath,workstreamLabel,flatProjectBranches,brandClient} from './workstream-display.js';
+import {projectPath,displayProjectPath,workstreamLabel,flatProjectBranches,brandClient,breadcrumbParts} from './workstream-display.js';
 import {stepStatusOptions,statusChoice,saveStepStatus} from './step-status.js';
 import {statusLabel} from './status-labels.js';
 import {unresolvedPastDue} from './past-due.js';
@@ -313,7 +313,7 @@ function projectStepListings(p,d,hideDone=state.view==='projects'&&state.hideDon
  }).join('');
 }
 function taskBreadcrumb(p,d){
- const brand=brandClient(p,d.pm,d.cm),parts=displayProjectPath(p,d.pm).map((part,n)=>`${n||brand?'<span class="breadcrumb-separator" aria-hidden="true">›</span>':''}<button class="text-button" data-open="${esc(part.id)}">${esc(n?workstreamLabel(part,d.pm):part.name)}</button>`).join('');
+ const {brand,path}=breadcrumbParts(p,d.pm,d.cm),parts=path.map((part,n)=>`${n||brand?'<span class="breadcrumb-separator" aria-hidden="true">›</span>':''}<button class="text-button" data-open="${esc(part.id)}">${esc(n?workstreamLabel(part,d.pm):part.name)}</button>`).join('');
  return `<span class="task-breadcrumb">${brand?`<span class="breadcrumb-brand">${esc(brand.name)}</span>`:''}${parts}</span>`;
 }
 function projectSchedule(p,d,rollup=false){
