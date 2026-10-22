@@ -460,3 +460,6 @@ textarea,.quick-entry textarea,.card-questions textarea,#comment-form textarea{m
 
 /* Perf: skip layout/paint for offscreen cards and sections; they render as they scroll into view. */
 .task-card,.finished-task,.past-due-item,.work-bucket,.daily-brand,.assignment-group,.page-step-group,.workload-project-group{content-visibility:auto;contain-intrinsic-size:auto 140px;}
+
+select.pill{display:inline-block;width:auto;min-height:0;margin:0;padding:2px 6px;border:0;border-radius:6px;font-size:10px;font-weight:700;line-height:1.4;cursor:pointer;flex-shrink:0}
+select.pill:disabled{cursor:default;opacity:.7}
