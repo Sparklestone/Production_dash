@@ -309,7 +309,7 @@ textarea,.quick-entry textarea,.card-questions textarea,#comment-form textarea{m
 .gantt-count{font-size:12px;color:var(--mut);white-space:nowrap}
 .gantt-rows{position:relative}
 .gantt-lines{position:absolute;top:0;bottom:0;left:220px;right:0;pointer-events:none}
-.gantt-major-line{position:absolute;top:0;bottom:0;width:0;border-left:3px solid #7e8d7e}
+.gantt-gridlines span.gantt-major-line{position:absolute;top:0;bottom:0;width:0;border-left:3px solid #7e8d7e}
 .gantt-gridlines span.major{border-left:3px solid #7e8d7e}
 .gantt-today-fill{position:absolute;top:0;bottom:0;background:#e0f8ed;pointer-events:none}
 .gantt-gridlines{position:absolute;inset:0;pointer-events:none}
