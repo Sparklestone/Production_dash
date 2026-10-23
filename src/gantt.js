@@ -86,7 +86,7 @@ export function ganttChart(axis,groups,ctx){
   }
   if(!rowCount)return '';
   const inRange=todayKey>=axis.start&&todayKey<=axis.end,tpos=inRange?axis.days.findIndex(d=>d>=todayKey):-1;
-  const marker=tpos>=0?`<div class="gantt-today" style="left:${pct(tpos+0.5)}">${gi===0?'<span class="gantt-today-label">TODAY</span>':''}</div>`:'';
+  const marker=tpos>=0?`<div class="gantt-today${mode==='week'?' gantt-today-week':''}" style="left:${pct(tpos+0.5)}">${gi===0?'<span class="gantt-today-label">TODAY</span>':''}</div>`:'';
   const todayFill=(mode==='week'&&tpos>=0)?`<div class="gantt-today-fill" style="left:${pct(tpos)};width:${pct(1)}"></div>`:'';
   return `<section class="gantt-group ${g.collapsed?'is-collapsed':''}">${g.head||''}${g.collapsed?'':`<div class="gantt-rows"><div class="gantt-lines" aria-hidden="true">${todayFill}<div class="gantt-gridlines">${gridlines}</div>${marker}</div>${rowsHtml}</div>`}</section>`;
  }).join('');
