@@ -517,7 +517,7 @@ function nowNext(p,d){
  const owner=i=>ownerNames(i,d.mm,'Unassigned');
  const parts=[];
  if(cur)parts.push(`Now: ${esc(cur.title)} (${esc(owner(cur))}, ${esc(cur.due_date?fmtDate(cur.due_date):'TBD')})`);
- if(next)parts.push(`Next: ${esc(next.title)}${next.due_date?' ('+esc(fmtDate(next.due_date))+')':''}`);
+ if(next)parts.push(`Next: ${esc(next.title)} (${esc(owner(next))}, ${esc(next.due_date?fmtDate(next.due_date):'TBD')})`);
  const noDates=steps.every(i=>!i.due_date);
  if(!parts.length&&!noDates)return '';
  return `<span class="listing-nownext">${parts.join(' · ')}${noDates?'<span class="no-dates-flag" title="No step on this project has a due date">No dates</span>':''}</span>`;
