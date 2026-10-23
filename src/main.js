@@ -481,7 +481,7 @@ function workloadGroups(items,d){
  items.forEach(i=>{const p=d.pm[i.project_id];const path=p?displayProjectPath(p,d.pm):[{id:'',name:'Unknown project'}];const root=path[0],brand=p?brandClient(p,d.pm,d.cm):null,groupKey=brand?('client:'+(brand.id||brand.name)):('project:'+(root.id||root.name)),groupName=brand?.name||root.name||'Unknown project';
  // Project path listed before subproject/step names; drop a root that just repeats the client.
  const parts=path.map((part,n)=>n?workstreamLabel(part,d.pm):part.name);
- if(brand&&parts.length&&String(parts[0]||'').toLowerCase()===String(brand.name||'').toLowerCase())parts.shift();
+ while(parts.length&&String(parts[0]||'').trim().toLowerCase()===String(groupName||'').trim().toLowerCase())parts.shift();
  const sub=parts.join(' › ');
  let g=byKey[groupKey];if(!g){g={project:{id:root.id,name:groupName},subs:[],bySub:{},count:0};byKey[groupKey]=g;groups.push(g);}
  let s=g.bySub[sub];if(!s){s={name:sub,items:[]};g.bySub[sub]=s;g.subs.push(s);}
