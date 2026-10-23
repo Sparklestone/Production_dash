@@ -442,9 +442,17 @@ function currentDaily(d){
  const memoKey=[state.data,today(),Math.floor(Date.now()/60000)];
  return (dailyMemo&&dailyMemo.key.every((v,i)=>v===memoKey[i]))?dailyMemo.value:(dailyMemo={key:memoKey,value:dailyStatus({items:state.data.sched,updates:state.data.updates,projects:d.pm,clients:state.data.clients,today:today()})}).value;
 }
+let dailyHtmlMemo=null;
 function dailyStatusView(d){
  if(isFreelancer(state.access))return '';
- const r=currentDaily(d),t=r.totals;
+ const r=currentDaily(d),memoKey=[r,state.dailyOpen,state.dailyFocus||''];
+ if(dailyHtmlMemo&&dailyHtmlMemo.key.every((v,i)=>v===memoKey[i]))return dailyHtmlMemo.value;
+ const html=buildDailyStatusView(d,r);
+ dailyHtmlMemo={key:memoKey,value:html};
+ return html;
+}
+function buildDailyStatusView(d,r){
+ const t=r.totals;
  const line=(x,extra)=>`<li><div class="daily-line"><span>${x.kind==='note'?`<span class="daily-what">${esc(x.text)}</span>`:`<button class="title-button" data-open="${esc(x.project.id)}"${x.item?` data-target-item="${esc(x.item.id)}"`:''}>${esc(x.item?joinedNames(x.project.name,x.item.title):x.project.name)}</button>`}${x.kind==='note'?` <button class="title-button daily-proj" data-open="${esc(x.project.id)}">${esc(x.project.name)}</button>`:''}</span>${commentButton(x.project,x.item)}</div>${extra?`<span class="daily-meta">${esc(extra)}</span>`:''}</li>`;
  const owner=i=>ownerNames(i,d.mm,'No owner');
  const list=(rows,fn)=>rows.length?`<ul>${rows.map(fn).join('')}</ul>`:'<p class="muted">Nothing.</p>';
@@ -456,7 +464,7 @@ function dailyStatusView(d){
 function todayView(d){
  const scope=isFreelancer(state.access)?'mine':state.workScope,first=d.identity.display_name?.trim().split(/\s+/)[0];
  const selected=state.data.sched.filter(i=>!projectIsDone(d.pm[i.project_id],d.pm)&&(scope==='team'||i.owner_id===d.aaron||(i.co_owner_ids||[]).includes(d.aaron)||(!isFreelancer(state.access)&&!i.owner_id)));
- const overview=workOverview(selected,d.pm,today()),filtered=overview.filters[state.workFilter]||overview.filters.all,result=workOverview(filtered,d.pm,today());
+ const overview=workOverview(selected,d.pm,today()),filtered=overview.filters[state.workFilter]||overview.filters.all,result=filtered===overview.filters.all?overview:workOverview(filtered,d.pm,today());
  const tiles=[['all','Open steps'],['in_progress','In progress'],['today','Due today'],['week','Due this week'],['nextweek','Due next week'],['waiting','Waiting on others'],['past','Past dates']];
  const myView=state.myWorkView||'list';
  return `<section class="hero"><div><span class="eyebrow">${scope==='team'?'TEAM WORK':'MY WORK'}</span><h1>${scope==='team'?'The team at a glance.':esc(first?`Hi ${first}. Here's what needs your attention.`:"Here's what needs your attention.")}</h1><p>${scope==='team'?'Open work across everyone.':'Your work, plus unassigned steps needing an owner.'} Each step appears once, in its highest-priority section.</p></div>${!isFreelancer(state.access)?`<div class="work-scope" aria-label="Work scope"><button data-work-scope="mine" aria-pressed="${scope==='mine'}">My work</button><button data-work-scope="team" aria-pressed="${scope==='team'}">Team work</button></div>`:''}</section>
