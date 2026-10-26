@@ -30,7 +30,7 @@ export function dailyStatus({items,updates=[],projects,clients=[],today,now=new 
  const cm=Object.fromEntries(clients.map(c=>[c.id,c])),start=businessWindowStart(now).getTime(),end=shiftDate(today,7),horizon=shiftDate(today,nextDays),doneStart=doneWindowStart(today);
  const rootOf=p=>{let n=p,s=0;while(n?.parent_id&&projects[n.parent_id]&&s++<20)n=projects[n.parent_id];return n;};
  const brands={};
- const brand=p=>{const root=rootOf(p),c=cm[p?.client_id]||cm[root?.client_id],name=c?.name||root?.name||'No client',key=c?.id||'p:'+(root?.id||'none');return brands[key]||(brands[key]={key,name,project_id:root?.id||p?.id,changed:[],urgent:[],next:[],week:[],rdone:[]});};
+ const brand=p=>{const root=rootOf(p),c=cm[p?.client_id]||cm[root?.client_id],name=c?.name||root?.name||'No client',key=c?.id||'p:'+(root?.id||'none');return brands[key]||(brands[key]={key,name,project_id:root?.id||p?.id,changed:[],urgent:[],next:[],week:[],active:[],rdone:[]});};
  const seen=new Set();
  for(const i of items){
   const p=projects[i.project_id];if(!p)continue;
@@ -46,27 +46,19 @@ export function dailyStatus({items,updates=[],projects,clients=[],today,now=new 
   else if(blocked(i))b.urgent.push(mark({item:i,project:p,due,why:i.status==='blocked'?'Blocked':'Waiting on others'}));
   else if(due&&due<=horizon)b.next.push(mark({item:i,project:p,due}));
   else if(due&&due<=end)b.week.push(mark({item:i,project:p,due}));
- }
- // An adjusted step must not silently drop off the status (Aaron, Oct 26):
- // a non-done step edited inside the window that landed in no list above
- // (e.g. unblocked and undated) stays visible as "[Updating]" for the
- // window. Brand-new steps were never on the status, so they are excluded.
- for(const i of items){
-  const p=projects[i.project_id];if(!p)continue;
-  if(i.status==='done'||projectIsDone(p,projects))continue;
-  if(seen.has(i.id))continue;
-  const when=i.updated_at?new Date(i.updated_at).getTime():0,created=i.created_at?new Date(i.created_at).getTime():0;
-  if(when>=start&&when<=now.getTime()&&created<start)brand(p).changed.push({kind:'updating',item:i,project:p,at:i.updated_at});
+  // Started work never drops off the status (Aaron, Oct 26): an in-progress
+  // step with no near date still shows, independent of when it was edited.
+  else if(i.status==='in_progress')b.active.push(mark({item:i,project:p,due}));
  }
  for(const u of updates){
   const p=projects[u.project_id];if(!p||!u.created_at)continue;const at=new Date(u.created_at).getTime();
   if(at>=start&&at<=now.getTime()&&DAILY.test(u.note||''))brand(p).changed.push({kind:'note',project:p,at:u.created_at,text:u.note.replace(DAILY,'').trim()});
  }
  const byDue=(a,b)=>(a.due||'9999').localeCompare(b.due||'9999')||a.item.title.localeCompare(b.item.title);
- const list=Object.values(brands).filter(b=>b.changed.length+b.urgent.length+b.next.length+b.week.length+b.rdone.length);
- for(const b of list){b.urgent.sort(byDue);b.next.sort(byDue);b.week.sort(byDue);b.changed.sort((x,y)=>y.at.localeCompare(x.at));b.rdone.sort((x,y)=>y.at.localeCompare(x.at));}
+ const list=Object.values(brands).filter(b=>b.changed.length+b.urgent.length+b.next.length+b.week.length+b.active.length+b.rdone.length);
+ for(const b of list){b.urgent.sort(byDue);b.next.sort(byDue);b.week.sort(byDue);b.active.sort(byDue);b.changed.sort((x,y)=>y.at.localeCompare(x.at));b.rdone.sort((x,y)=>y.at.localeCompare(x.at));}
  list.sort((a,b)=>b.urgent.length-a.urgent.length||a.name.localeCompare(b.name));
- return {brands:list,since:new Date(start),totals:list.reduce((t,b)=>({changed:t.changed+b.changed.length,urgent:t.urgent+b.urgent.length,next:t.next+b.next.length,week:t.week+b.week.length,rdone:t.rdone+b.rdone.length}),{changed:0,urgent:0,next:0,week:0,rdone:0})};
+ return {brands:list,since:new Date(start),totals:list.reduce((t,b)=>({changed:t.changed+b.changed.length,urgent:t.urgent+b.urgent.length,next:t.next+b.next.length,week:t.week+b.week.length,active:t.active+b.active.length,rdone:t.rdone+b.rdone.length}),{changed:0,urgent:0,next:0,week:0,active:0,rdone:0})};
 }
 
 // Plain-text and HTML outlines of the daily status, for pasting into Teams.
@@ -79,10 +71,10 @@ const outlineDate=d=>{if(!d)return '';const[,m,day]=d.split('-');return `${OUTLI
 const outlineEsc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const outlineProjects=(b)=>{
  const projs=new Map();
- const get=p=>projs.get(p.id)||(projs.set(p.id,{p,notes:[],done:[],updating:[],steps:[],rdone:[]}),projs.get(p.id));
- for(const x of b.changed){const g=get(x.project);(x.kind==='note'?g.notes:x.kind==='updating'?g.updating:g.done).push(x);}
+ const get=p=>projs.get(p.id)||(projs.set(p.id,{p,notes:[],done:[],steps:[],rdone:[]}),projs.get(p.id));
+ for(const x of b.changed){const g=get(x.project);(x.kind==='note'?g.notes:g.done).push(x);}
  for(const x of b.rdone||[])get(x.project).rdone.push(x);
- for(const [k,rows] of [['urgent',b.urgent],['next',b.next],['week',b.week]])for(const x of rows)get(x.project).steps.push({...x,cat:k});
+ for(const [k,rows] of [['urgent',b.urgent],['next',b.next],['week',b.week],['active',b.active||[]]])for(const x of rows)get(x.project).steps.push({...x,cat:k});
  const rank=g=>g.steps.some(s=>s.cat==='urgent')?0:1,first=g=>g.steps.map(s=>s.due||'9999').sort()[0]||'9999';
  // The brand's root project (direct steps) lists first, matching the panel.
  const root=g=>g.p.id===b.project_id?0:1;
@@ -100,8 +92,7 @@ const outlineModel=(b,{projects,mm,projectId}={})=>{
   const lines=[];
   for(const n of g.notes)lines.push(n.text);
   for(const x of g.steps.sort((a,b2)=>(a.due||'9999').localeCompare(b2.due||'9999')))
-   lines.push(`${x.item.title} - ${owner(x.item)} - ${x.cat==='urgent'?x.why:'Due'}${x.due?' '+outlineDate(x.due):''}`);
-  for(const x of g.updating)lines.push(`[Updating] ${x.item.title} - ${owner(x.item)}`);
+   lines.push(`${x.item.title} - ${owner(x.item)} - ${x.cat==='urgent'?x.why:x.cat==='active'?'In progress':'Due'}${x.due?' '+outlineDate(x.due):''}`);
   for(const x of g.done)lines.push(`${x.item.title} - ${owner(x.item)} - Done`);
   if(g.rdone?.length){lines.push('Done (last 5 working days):');for(const x of g.rdone)lines.push(`${x.item.title} - ${owner(x.item)} - Done ${outlineDate(dayKey(new Date(x.at).getTime()))}`);}
   return {name:g.p.name,id:g.p.id,merged:!projectId&&g.p.id===b.project_id,lines};
@@ -116,14 +107,15 @@ const modelText=m=>{
 };
 const modelHtml=m=>{
  const link=(id,text)=>id?`<a href="https://productiondash.vercel.app/#project=${id}">${text}</a>`:text;
- // Brand head: bigger and bolder than subproject text, flush left; subproject
- // blocks are indented so the hierarchy survives a rich paste (Aaron, Oct 26).
- const head=`<p style="margin:0"><b style="font-size:15px;font-weight:800">${link(m.headId,outlineEsc(m.head))}</b>`;
- const parts=[head+'</p>'];
+ // Brand head h2, subproject head h3: heading tags are what survives a
+ // Teams paste (its sanitizer strips inline styles but keeps headings), so
+ // the brand/subproject size hierarchy holds in the actual paste (Oct 26).
+ const head=`<h2 style="margin:0">${link(m.headId,outlineEsc(m.head))}</h2>`;
+ const parts=[head];
  for(const g of m.groups){
   const body=g.lines.map(outlineEsc).join('<br>');
-  if(!g.merged||!body){parts.push(m.projectScoped?`<p>${body}</p>`:`<p style="margin:0 0 0 14px"><b>${link(g.id,outlineEsc(g.name))}</b><br>${body}</p>`);continue;}
-  parts[0]=head+`<br>${body}</p>`;
+  if(!g.merged||!body){parts.push(m.projectScoped?`<p>${body}</p>`:`<h3 style="margin:8px 0 0 14px">${link(g.id,outlineEsc(g.name))}</h3><p style="margin:0 0 0 14px">${body}</p>`);continue;}
+  parts.push(`<p style="margin:0">${body}</p>`);
  }
  return parts.join('');
 };

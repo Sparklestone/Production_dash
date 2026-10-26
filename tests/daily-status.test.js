@@ -65,11 +65,11 @@ test('outline spacing and HTML hierarchy for Teams paste',()=>{
  assert.ok(text.includes('\n\n\n'),'triple break between brands: '+JSON.stringify(text.slice(0,200)));
  assert.ok(text.includes('Acme: CX Riley\n\nKickoff & deck - Aaron F. - Past due Oct 17\n'),'root project content merged under brand head: '+JSON.stringify(text.slice(0,200)));
  const html=statusOutlineHtml(r,{projects,mm});
- assert.ok(html.includes('<p style="margin:0"><b style="font-size:15px;font-weight:800"><a href="https://productiondash.vercel.app/#project=p">Acme: CX Riley</a></b><br>Kickoff &amp; deck - Aaron F. - Past due Oct 17</p>'),'root project folds into linked brand head paragraph: '+html.slice(0,300));
+ assert.ok(html.includes('<h2 style="margin:0"><a href="https://productiondash.vercel.app/#project=p">Acme: CX Riley</a></h2><p style="margin:0">Kickoff &amp; deck - Aaron F. - Past due Oct 17</p>'),'root project folds under h2 brand head: '+html.slice(0,300));
  assert.ok(!html.includes('<b>Logo</b><br>'),'no duplicate root project head: '+html.slice(0,300));
  assert.ok(html.includes('<p><br></p>'),'empty paragraph between brands');
  const projHtml=brandOutlineHtml(r.brands.find(b=>b.name==='Acme'),{projects,mm,projectId:'p'});
- assert.ok(projHtml.startsWith('<p style="margin:0"><b style="font-size:15px;font-weight:800"><a href="https://productiondash.vercel.app/#project=p">Logo: CX Riley</a></b></p>'),'project-scoped linked head: '+projHtml);
+ assert.ok(projHtml.startsWith('<h2 style="margin:0"><a href="https://productiondash.vercel.app/#project=p">Logo: CX Riley</a></h2>'),'project-scoped linked head: '+projHtml);
  assert.ok(!projHtml.includes('Zed'),'project html scoped');
 });
 test('subproject and brand heads link to their cards in HTML copy',()=>{
@@ -80,8 +80,9 @@ test('subproject and brand heads link to their cards in HTML copy',()=>{
   {id:'2',project_id:'s',title:'Intake',status:'blocked',due_date:null,owner_id:null}];
  const r=ds2({items,updates:[],projects,clients,today:'2026-10-19',now});
  const html=statusOutlineHtml(r,{projects,mm:{}});
- assert.ok(html.includes('<b style="font-size:15px;font-weight:800"><a href="https://productiondash.vercel.app/#project=p">DPP</a></b>'),'brand head bigger+bolder and links to root card: '+html);
- assert.ok(html.includes('<p style="margin:0 0 0 14px"><b><a href="https://productiondash.vercel.app/#project=s">Social Ads</a></b>'),'subproject head indented under the brand and links to its card: '+html);
+ assert.ok(html.includes('<h2 style="margin:0"><a href="https://productiondash.vercel.app/#project=p">DPP</a></h2>'),'brand head h2 and links to root card: '+html);
+ assert.ok(html.includes('<h3 style="margin:8px 0 0 14px"><a href="https://productiondash.vercel.app/#project=s">Social Ads</a></h3>'),'subproject head h3: '+html);
+ assert.ok(html.includes('<h3 style="margin:8px 0 0 14px"><a href="https://productiondash.vercel.app/#project=s">Social Ads</a></h3>'),'subproject head indented under the brand and links to its card: '+html);
  const text=statusOutline(r,{projects,mm:{}});
  assert.ok(!text.includes('http'),'plain text copy stays link-free');
  assert.ok(text.includes('\n  Social Ads\n  Intake'),'plain-text copy indents subproject under brand: '+JSON.stringify(text.slice(0,200)));
@@ -124,17 +125,18 @@ test('Done subsection lists steps completed in the last 5 working days',()=>{
  assert.equal(dayKey(new Date('2026-10-21T05:59:00Z').getTime()),'2026-10-20','late-night UTC still prior Denver day');
 });
 
-test('adjusted steps that would drop off stay visible as [Updating]',()=>{
+test('started work never drops off: in-progress steps always show (no edit-age limit)',()=>{
  const items=[
-  {id:'1',project_id:'p',title:'Receive brand kit',status:'in_progress',due_date:null,created_at:'2026-10-10T00:00:00Z',updated_at:'2026-10-19T14:00:00Z'},
-  {id:'2',project_id:'p',title:'New intake',status:'pending',due_date:null,created_at:'2026-10-19T14:00:00Z',updated_at:'2026-10-19T14:00:00Z'},
-  {id:'3',project_id:'p',title:'Dated step',status:'pending',due_date:'2026-10-19',created_at:'2026-10-10T00:00:00Z',updated_at:'2026-10-19T14:00:00Z'},
-  {id:'4',project_id:'p',title:'Old untouched',status:'pending',due_date:null,created_at:'2026-10-10T00:00:00Z',updated_at:'2026-10-10T00:00:00Z'}];
+  {id:'1',project_id:'p',title:'Receive brand kit',status:'in_progress',due_date:null},
+  {id:'2',project_id:'p',title:'Backlog idea',status:'pending',due_date:null},
+  {id:'3',project_id:'p',title:'Far-dated started step',status:'in_progress',due_date:'2026-12-15'},
+  {id:'4',project_id:'p',title:'Due today started step',status:'in_progress',due_date:'2026-10-19'}];
  const r=dailyStatus({items,updates:[],projects,clients,today:'2026-10-19',now});
  const acme=r.brands.find(b=>b.name==='Acme');
- assert.deepEqual(acme.changed.filter(x=>x.kind==='updating').map(x=>x.item.id),['1']);
- assert.deepEqual(acme.urgent.map(x=>x.item.id),['3']);
+ assert.deepEqual(acme.active.map(x=>x.item.id),['3','1']);
+ assert.deepEqual(acme.urgent.map(x=>x.item.id),['4']);
+ assert.equal(r.totals.active,2);
  const text=brandOutline(acme,{projects,mm:{}});
- assert.ok(text.includes('[Updating] Receive brand kit - No owner'),text);
- assert.ok(!text.includes('New intake'),text);
+ assert.ok(text.includes('Receive brand kit - No owner - In progress'),text);
+ assert.ok(!text.includes('Backlog idea'),text);
 });

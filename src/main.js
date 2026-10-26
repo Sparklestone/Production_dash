@@ -90,8 +90,22 @@ function revisionsView(){
  const projects=Object.fromEntries((state.data?.projects||[]).map(p=>[p.id,p]));
  return `<details class="revisions-panel" ${state.revisionsOpen?'open':''}><summary><span>revisions in progress</span><span class="revision-count">${rows.length}</span></summary><div class="revisions-body">${state.revisionsAvailable?'':'<p class="revision-unavailable" role="status">Could not refresh revision status. Showing the last confirmed queue.</p>'}<p>Submitted changes awaiting processing. Your visible submissions are shown here; the card highlight clears after each change is applied.</p>${rows.map(r=>`<article class="revision-entry"><div><strong>${esc(projects[r.project_id]?.name||r.context?.project_name||'Project')}${r.schedule_item_id?` · ${esc(r.context?.schedule_title||state.data.sched.find(i=>i.id===r.schedule_item_id)?.title||'Step')}`:''}</strong><span class="revision-state">Queued for processing</span></div><p>${esc(r.note)}</p><small>${r.created_at?esc(stamp(r.created_at))+' MT':''}</small></article>`).join('')}</div></details>`;
 }
+function updateDailyPendingUI(){
+ if(!state.data)return;
+ const targets=revisionTargets(pendingRevisions(state.revisions.filter(r=>!r.disregarded_at),state.data.projects),state.data.projects);
+ document.querySelectorAll('.brief-steps li').forEach(li=>{
+  const button=li.querySelector('[data-target-item]');if(!button)return;
+  const id=button.dataset.targetItem;
+  const pending=!!state.stepStatusBusy[id]||targets.stepIds.has(id);
+  li.classList.toggle('brief-updating',pending);
+  const old=li.querySelector('[data-updating-prefix]');
+  if(pending&&!old){const prefix=document.createElement('b');prefix.dataset.updatingPrefix='';prefix.textContent='[Updating] ';li.prepend(prefix);}
+  else if(!pending&&old)old.remove();
+ });
+}
 function updateRevisionUI(){
  if(!state.data)return;
+ updateDailyPendingUI();
  const area=document.querySelector('#revisions-area');
  if(area){const focused=area.contains(document.activeElement);area.innerHTML=revisionsView();area.querySelector('details')?.addEventListener('toggle',e=>{state.revisionsOpen=e.target.open;});if(focused)area.querySelector('summary')?.focus();}
  const rows=pendingRevisions(state.revisions.filter(r=>!r.disregarded_at),state.data.projects),targets=revisionTargets(rows,state.data.projects);
@@ -203,7 +217,7 @@ async function changeStepStatus(id,next){
  if(next===statusChoice(item.status))return;
  const copies=()=>[...document.querySelectorAll('[data-step-status]')].filter(el=>el.dataset.stepStatus===id);
  const feedback=text=>document.querySelectorAll('[data-step-status-feedback]').forEach(el=>{if(el.dataset.stepStatusFeedback===id)el.textContent=text;});
- state.stepStatusBusy[id]=true;copies().forEach(el=>el.disabled=true);feedback('Saving...');
+ state.stepStatusBusy[id]=true;updateDailyPendingUI();copies().forEach(el=>el.disabled=true);feedback('Saving...');
  try{
   await saveStepStatus(supabase,item,next);
   if(session?.user?.id!==uid)return;
@@ -214,7 +228,7 @@ async function changeStepStatus(id,next){
   if(day)openDay(day.pid,day.key,day.rollup);
  }catch{
   if(session?.user?.id===uid){state.stepStatusFeedback[id]='Not saved. Refresh and try again.';copies().forEach(el=>{el.value=statusChoice(item.status);el.disabled=false;});feedback(state.stepStatusFeedback[id]);}
- }finally{delete state.stepStatusBusy[id];}
+ }finally{delete state.stepStatusBusy[id];updateDailyPendingUI();}
 }
 function stepOwnerControl(item,d){
  if(isFreelancer(state.access)||projectIsDone(d.pm[item.project_id],d.pm))return '';
@@ -422,21 +436,21 @@ function myWorkCalendar(d,items){
  return `<section class="my-work-calendar"><h2 class="calendar-period-title">${esc(ganttPeriodTitle(anchor,'week',axis))}</h2>${chart.html}${undated.length?`<section class="my-work-undated"><h2 class="calendar-period-title undated-title">No date <span class="number">${undated.length}</span></h2><div class="task-grid">${items.filter(i=>!dateKey(i.due_date)).map(i=>taskCard(i,d)).join('')}</div></section>`:''}${groups.length?'':'<p class="empty">No dated steps in this filter.</p>'}</section>`;
 }
 let dailyMemo=null;
-const DAILY_COLS=[['urgent','urgent','Urgent (whole team, all brands): steps that are past due, due today, or blocked / waiting on others. My work > Needs attention is only your own steps, so its count is smaller. Click to show only these.'],['changed','changed','Changed in the last 24 business hours: steps finished, adjusted steps kept visible as [Updating], plus plain-words [Daily] notes (date moves, delays, deliveries, decisions). Click to list them.'],['next','next few days','Open steps due in the next 3 days that are not already urgent. Click to show only these.'],['week','later (7 days)','Open steps due from day 4 through the next 7 days that are not already urgent. Click to show only these.']];
+const DAILY_COLS=[['urgent','urgent','Urgent (whole team, all brands): steps that are past due, due today, or blocked / waiting on others. My work > Needs attention is only your own steps, so its count is smaller. Click to show only these.'],['changed','changed','Changed in the last 24 business hours: steps finished plus plain-words [Daily] notes (date moves, delays, deliveries, decisions). Click to list them.'],['active','in progress','Open steps that are started (in progress) but not past due, due soon, or blocked. Started work always shows here so it never drops off the status. Click to show only these.'],['next','next few days','Open steps due in the next 3 days that are not already urgent. Click to show only these.'],['week','later (7 days)','Open steps due from day 4 through the next 7 days that are not already urgent. Click to show only these.']];
 function briefing(b,d){
  const owner=i=>ownerNames(i,d.mm,"No owner");
  const keep=k=>!state.dailyFocus||state.dailyFocus===k;
  const projs=new Map();
- const get=p=>projs.get(p.id)||(projs.set(p.id,{p,notes:[],done:[],updating:[],steps:[],rdone:[]}),projs.get(p.id));
- for(const x of b.changed)if(keep('changed')){const g=get(x.project);(x.kind==='note'?g.notes:x.kind==='updating'?g.updating:g.done).push(x);}
+ const get=p=>projs.get(p.id)||(projs.set(p.id,{p,notes:[],done:[],steps:[],rdone:[]}),projs.get(p.id));
+ for(const x of b.changed)if(keep('changed')){const g=get(x.project);(x.kind==='note'?g.notes:g.done).push(x);}
  for(const x of b.rdone||[])get(x.project).rdone.push(x);
- for(const [k,rows] of [['urgent',b.urgent],['next',b.next],['week',b.week]])if(keep(k))for(const x of rows)get(x.project).steps.push({...x,cat:k});
+ for(const [k,rows] of [['urgent',b.urgent],['next',b.next],['week',b.week],['active',b.active||[]]])if(keep(k))for(const x of rows)get(x.project).steps.push({...x,cat:k});
  const rank=g=>g.steps.some(s=>s.cat==='urgent')?0:1,first=g=>g.steps.map(s=>s.due||'9999').sort()[0]||'9999';
  // The brand's root project (direct steps, no subproject) lists first, merged
  // under the brand header - its own header row would duplicate the brand.
  const root=g=>g.p.id===b.project_id?0:1;
  const gs=[...projs.values()].sort((x,y)=>root(x)-root(y)||rank(x)-rank(y)||first(x).localeCompare(first(y))||x.p.name.localeCompare(y.p.name));
- return `<ul class="brief">${gs.map(g=>`<li class="brief-proj">${g.p.id===b.project_id?'':`<div class="daily-line"><b><button class="title-button" data-open="${esc(g.p.id)}">${esc(g.p.name)}</button></b>${commentButton(g.p,null)} <button class="comment daily-copy" data-copy-brand="${esc(b.key)}" data-copy-project="${esc(g.p.id)}">Copy text</button></div>`}${g.notes.map(n=>`<p class="brief-note">${esc(n.text)} <span class="daily-meta">${esc(stamp(n.at))}</span></p>`).join('')}<ul class="brief-steps">${g.updating.map(x=>`<li class="brief-updating"><b>[Updating]</b> <button class="title-button" data-open="${esc(x.project.id)}" data-target-item="${esc(x.item.id)}">${esc(x.item.title)}</button> - ${esc(owner(x.item))}</li>`).join('')}${g.steps.sort((x,y)=>(x.due||'9999').localeCompare(y.due||'9999')).map(x=>`<li><button class="title-button" data-open="${esc(x.project.id)}" data-target-item="${esc(x.item.id)}">${esc(x.item.title)}</button> - ${esc(owner(x.item))} - <span class="brief-tag brief-${x.cat}">${esc(x.cat==='urgent'?x.why:'Due')}</span>${x.due?' '+esc(fmtDate(x.due)):''}</li>`).join('')}${g.done.map(x=>`<li><button class="title-button" data-open="${esc(x.project.id)}" data-target-item="${esc(x.item.id)}">${esc(x.item.title)}</button> - ${esc(owner(x.item))} - <span class="brief-tag brief-done">Done</span> ${esc(stamp(x.at))}</li>`).join('')}${g.rdone.length?`<li class="brief-done-subhead">Done (last 5 working days)</li>`+g.rdone.map(x=>`<li class="brief-rdone"><button class="title-button" data-open="${esc(x.project.id)}" data-target-item="${esc(x.item.id)}">${esc(x.item.title)}</button> - ${esc(owner(x.item))} - <span class="brief-tag brief-done">Done</span> ${esc(fmtDate(dayKey(new Date(x.at).getTime())))}</li>`).join(''):''}</ul></li>`).join('')}</ul>`;
+ return `<ul class="brief">${gs.map(g=>`<li class="brief-proj">${g.p.id===b.project_id?'':`<div class="daily-line"><b><button class="title-button" data-open="${esc(g.p.id)}">${esc(g.p.name)}</button></b>${commentButton(g.p,null)} <button class="comment daily-copy" data-copy-brand="${esc(b.key)}" data-copy-project="${esc(g.p.id)}">Copy text</button></div>`}${g.notes.map(n=>`<p class="brief-note">${esc(n.text)} <span class="daily-meta">${esc(stamp(n.at))}</span></p>`).join('')}<ul class="brief-steps">${g.steps.sort((x,y)=>(x.due||'9999').localeCompare(y.due||'9999')).map(x=>`<li><button class="title-button" data-open="${esc(x.project.id)}" data-target-item="${esc(x.item.id)}">${esc(x.item.title)}</button> - ${esc(owner(x.item))} - <span class="brief-tag brief-${x.cat}">${esc(x.cat==='urgent'?x.why:x.cat==='active'?'In progress':'Due')}</span>${x.due?' '+esc(fmtDate(x.due)):''}</li>`).join('')}${g.done.map(x=>`<li><button class="title-button" data-open="${esc(x.project.id)}" data-target-item="${esc(x.item.id)}">${esc(x.item.title)}</button> - ${esc(owner(x.item))} - <span class="brief-tag brief-done">Done</span> ${esc(stamp(x.at))}</li>`).join('')}${g.rdone.length?`<li class="brief-done-subhead">Done (last 5 working days)</li>`+g.rdone.map(x=>`<li class="brief-rdone"><button class="title-button" data-open="${esc(x.project.id)}" data-target-item="${esc(x.item.id)}">${esc(x.item.title)}</button> - ${esc(owner(x.item))} - <span class="brief-tag brief-done">Done</span> ${esc(fmtDate(dayKey(new Date(x.at).getTime())))}</li>`).join(''):''}</ul></li>`).join('')}</ul>`;
 }
 function currentDaily(d){
  const memoKey=[state.data,today(),Math.floor(Date.now()/60000)];
@@ -459,7 +473,7 @@ function buildDailyStatusView(d,r){
  const block=(name,rows,fn)=>`<div class="daily-col"><h4>${name} <span class="number">${rows.length}</span></h4>${list(rows,fn)}</div>`;
  const focus=k=>!state.dailyFocus||state.dailyFocus===k;
  const short=s=>{const x=String(s||'').replace(/\s+/g,' ').trim();return x.length>140?x.slice(0,137)+'...':x;};
- return `<details class="daily-status" ${state.dailyOpen?'open':''}><summary><b>Daily status</b> <span class="daily-sum">${DAILY_COLS.map(([k,n,tip])=>`<span class="daily-chip" role="button" tabindex="0" data-daily-focus="${k}" aria-pressed="${state.dailyFocus===k}" title="${esc(tip)}">${t[k]} ${n}</span>`).join(' · ')}</span> <button class="comment daily-copy" data-copy-status>Copy text</button></summary><p class="daily-note">By brand, then by project, in the same shape as the Production Team status post: what changed, who owns each step, and what is due over the next 7 days. Changes cover the last 24 business hours (since ${esc(stamp(r.since))} MT, weekends skipped) and lists only completions and events the team needs to know about, in plain words. Past due, due today and blocked steps are tagged in red.</p>${!state.dailyOpen?'':(state.dailyFocus?`<p class="daily-focus">Showing only <b>${esc(DAILY_COLS.find(x=>x[0]===state.dailyFocus)[1])}</b> (${t[state.dailyFocus]}). <button class="title-button" data-daily-focus="">Show all four lists</button></p>`:'')+r.brands.filter(b=>!state.dailyFocus||b[state.dailyFocus].length).map(b=>`<article class="daily-brand"><div class="daily-brand-head"><h3>${b.project_id&&d.pm[b.project_id]?`<button class="title-button" data-open="${esc(b.project_id)}">${esc(b.name)}</button>`:esc(b.name)}${(()=>{const cx=projectCx(d.pm[b.project_id],d.pm);return cx.length?` <span class="daily-cx">CX: ${esc(cx.join(', '))}</span>`:'';})()}</h3>${b.project_id&&d.pm[b.project_id]?`<button class="comment" data-comment="${esc(b.project_id)}" data-brand="${esc(b.name)}" aria-label="Comment to Instinct about the whole ${esc(b.name)} brand"><span aria-hidden="true">↗</span> Update</button>`:''}<button class="comment daily-copy" data-copy-brand="${esc(b.key)}">Copy text</button></div><div class="daily-brief">${briefing(b,d)}</div></article>`).join('')||'<p class="muted">No activity or dated work to show.</p>'}</details>`;
+ return `<details class="daily-status" ${state.dailyOpen?'open':''}><summary><b>Daily status</b> <span class="daily-sum">${DAILY_COLS.map(([k,n,tip])=>`<span class="daily-chip" role="button" tabindex="0" data-daily-focus="${k}" aria-pressed="${state.dailyFocus===k}" title="${esc(tip)}">${t[k]} ${n}</span>`).join(' · ')}</span> <button class="comment daily-copy" data-copy-status>Copy text</button></summary><p class="daily-note">By brand, then by project, in the same shape as the Production Team status post: what changed, who owns each step, and what is due over the next 7 days. Changes cover the last 24 business hours (since ${esc(stamp(r.since))} MT, weekends skipped) and lists only completions and events the team needs to know about, in plain words. Past due, due today and blocked steps are tagged in red.</p>${!state.dailyOpen?'':(state.dailyFocus?`<p class="daily-focus">Showing only <b>${esc(DAILY_COLS.find(x=>x[0]===state.dailyFocus)[1])}</b> (${t[state.dailyFocus]}). <button class="title-button" data-daily-focus="">Show all lists</button></p>`:'')+r.brands.filter(b=>!state.dailyFocus||b[state.dailyFocus].length).map(b=>`<article class="daily-brand"><div class="daily-brand-head"><h3>${b.project_id&&d.pm[b.project_id]?`<button class="title-button" data-open="${esc(b.project_id)}">${esc(b.name)}</button>`:esc(b.name)}${(()=>{const cx=projectCx(d.pm[b.project_id],d.pm);return cx.length?` <span class="daily-cx">CX: ${esc(cx.join(', '))}</span>`:'';})()}</h3>${b.project_id&&d.pm[b.project_id]?`<button class="comment" data-comment="${esc(b.project_id)}" data-brand="${esc(b.name)}" aria-label="Comment to Instinct about the whole ${esc(b.name)} brand"><span aria-hidden="true">↗</span> Update</button>`:''}<button class="comment daily-copy" data-copy-brand="${esc(b.key)}">Copy text</button></div><div class="daily-brief">${briefing(b,d)}</div></article>`).join('')||'<p class="muted">No activity or dated work to show.</p>'}</details>`;
 }
 function todayView(d){
  const scope=isFreelancer(state.access)?'mine':state.workScope,first=d.identity.display_name?.trim().split(/\s+/)[0];
