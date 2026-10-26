@@ -97,16 +97,20 @@ const outlineModel=(b,{projects,mm,projectId}={})=>{
 };
 const modelText=m=>{
  const blocks=[m.head,''];
- for(const g of m.groups)blocks.push(...((m.projectScoped||g.merged)?g.lines:[g.name,...g.lines]),'');
+ // Plain text cannot carry size: subprojects indent two spaces instead.
+ for(const g of m.groups)blocks.push(...((m.projectScoped||g.merged)?g.lines:['  '+g.name,...g.lines.map(l=>'  '+l)]),'');
  return blocks.join('\n').trim();
 };
 const modelHtml=m=>{
  const link=(id,text)=>id?`<a href="https://productiondash.vercel.app/#project=${id}">${text}</a>`:text;
- const parts=[`<p><b>${link(m.headId,outlineEsc(m.head))}</b></p>`];
+ // Brand head: bigger and bolder than subproject text, flush left; subproject
+ // blocks are indented so the hierarchy survives a rich paste (Aaron, Oct 26).
+ const head=`<p style="margin:0"><b style="font-size:15px;font-weight:800">${link(m.headId,outlineEsc(m.head))}</b>`;
+ const parts=[head+'</p>'];
  for(const g of m.groups){
   const body=g.lines.map(outlineEsc).join('<br>');
-  if(!g.merged||!body){parts.push(m.projectScoped?`<p>${body}</p>`:`<p><b>${link(g.id,outlineEsc(g.name))}</b><br>${body}</p>`);continue;}
-  parts[0]=`<p><b>${link(m.headId,outlineEsc(m.head))}</b><br>${body}</p>`;
+  if(!g.merged||!body){parts.push(m.projectScoped?`<p>${body}</p>`:`<p style="margin:0 0 0 14px"><b>${link(g.id,outlineEsc(g.name))}</b><br>${body}</p>`);continue;}
+  parts[0]=head+`<br>${body}</p>`;
  }
  return parts.join('');
 };
