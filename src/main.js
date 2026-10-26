@@ -35,7 +35,7 @@ const supabase = createClient(URL_, KEY);
 let session = null;
 let activeUserId=null;
 const TZ = 'America/Denver';
-const state = { data: null, view: 'today', member: 'all', client: 'all', status: 'open', search: '', open: null, busy: false, scheduleModes: {}, calendarMonths: {}, completing: false, openDay: null, focusedTask: null, expandedProjects: {}, hideDone: false, scheduleHideDone: {}, workloadExpanded: {}, sectionModes: {}, access: null, accessReady: false, workloadMember: 'all', workScope: 'mine', calendarMode: 'week', ganttRanges: {}, ganttCollapsed: {}, ganttHideDone: true, stepRowOpen: {}, workFilter:'today', myHideDone: false, myWorkView: 'list', finishedOpen: false, calendarAnchor: null, calendarScrollTo: 'today', calendarOwner: 'all', calendarProject: 'all', liveState: 'Connecting', livePending: false, legendOpen: false, revisionsOpen: false, revisions: [], revisionsAvailable: true, commentHistory: [], commentsAvailable: false, outbox: [], outboxBusy: {}, questionBusy: {}, questionDrafts: {}, questionsAvailable: false, quickDrafts: {}, pastDateDrafts: {}, selectedSteps: [], bulkBusy: false, bulkFeedback: '', workloadTeamFilter: [...defaultWorkloadTeams], teamBusy: {}, teamFeedback: {}, ownerBusy: {}, ownerFeedback: {}, stepStatusBusy: {}, stepStatusFeedback: {}, pastDateBusy: {}, pastDateFeedback: {}, matchText: '', matchItem: null, matchSaving: false, matchFeedback: '', dependencyEdges: [], dependencyAvailable: false };
+const state = { data: null, view: 'today', member: 'all', client: 'all', status: 'open', search: '', open: null, busy: false, scheduleModes: {}, calendarMonths: {}, completing: false, openDay: null, focusedTask: null, expandedProjects: {}, hideDone: false, scheduleHideDone: {}, workloadExpanded: {}, sectionModes: {}, access: null, accessReady: false, workloadMember: 'all', workScope: 'mine', calendarMode: 'week', ganttRanges: {}, ganttCollapsed: {}, ganttHideDone: true, stepRowOpen: {}, workFilter:'today', myHideDone: false, myWorkView: 'list', finishedOpen: false, calendarAnchor: null, calendarScrollTo: 'today', calendarOwner: 'all', calendarProject: 'all', liveState: 'Connecting', livePending: false, legendOpen: false, revisionsOpen: false, revisions: [], revisionsAvailable: true, commentHistory: [], commentsAvailable: false, outbox: [], outboxBusy: {}, questionBusy: {}, questionDrafts: {}, questionsAvailable: false, quickDrafts: {}, pastDateDrafts: {}, selectedSteps: [], bulkBusy: false, bulkFeedback: '', workloadTeamFilter: [...defaultWorkloadTeams], teamBusy: {}, teamFeedback: {}, ownerBusy: {}, ownerFeedback: {}, addCo: {}, stepStatusBusy: {}, stepStatusFeedback: {}, pastDateBusy: {}, pastDateFeedback: {}, matchText: '', matchItem: null, matchSaving: false, matchFeedback: '', dependencyEdges: [], dependencyAvailable: false };
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const label = statusLabel;
 const today = () => new Intl.DateTimeFormat('en-CA', { timeZone:TZ, year:'numeric',month:'2-digit',day:'2-digit' }).format(new Date());
@@ -235,10 +235,20 @@ function projectOwnerControl(p,d){
  if(isFreelancer(state.access)||projectIsDone(p,d.pm))return esc(d.mm[p.owner_id]?.name||'Not assigned');
  return `<span class="inline-owner"><select data-project-owner="${esc(p.id)}" aria-label="Assign project ${esc(p.name)}">${opt('',p.owner_id||'','Unassigned')}${state.data.members.map(m=>opt(m.id,p.owner_id,m.name)).join('')}</select><span role="status"></span></span>`;
 }
+const ADD_CO='__add_additional__',REMOVE_CO='__remove_additional__';
+function coOwnerSelect(item,d,transient){
+ const co=item.co_owner_ids||[];
+ const extras=co.slice(1).map(id=>d.mm[id]?.name).filter(Boolean);
+ const cur=transient?'':co[0];
+ let memberOpts=state.data.members.filter(m=>m.id!==item.owner_id).map(m=>opt(m.id,cur,m.name)).join('');
+ if(!transient&&cur&&!state.data.members.some(m=>m.id===cur))memberOpts=opt(cur,cur,d.mm[cur]?.name||'Former member')+memberOpts;
+ return `<span class="inline-coowners"> & </span><select data-step-co="${esc(item.id)}" aria-label="Second assignee for ${esc(item.title)}" ${state.ownerBusy[item.id]?'disabled':''}>${transient?opt('','','Unassigned'):''}${memberOpts}${opt(REMOVE_CO,'','remove additional')}</select>${extras.length?`<span class="inline-coowners"> & ${esc(extras.join(' & '))}</span>`:''}`;
+}
 function inlineOwner(item,d){
  if(isFreelancer(state.access)||projectIsDone(d.pm[item.project_id],d.pm))return esc(ownerNames(item,d.mm,'Unassigned'));
- const co=(item.co_owner_ids||[]).map(id=>d.mm[id]?.name).filter(Boolean);
- return `<span class="inline-owner"><select data-step-owner="${esc(item.id)}" aria-label="Assign ${esc(item.title)}" ${state.ownerBusy[item.id]?'disabled':''}>${opt('',item.owner_id||'','Unassigned')}${state.data.members.map(m=>opt(m.id,item.owner_id,m.name)).join('')}</select>${co.length?`<span class="inline-coowners"> & ${esc(co.join(' & '))}</span>`:''}<span data-owner-feedback="${esc(item.id)}" role="status">${esc(state.ownerFeedback[item.id]||'')}</span></span>`;
+ const hasCo=(item.co_owner_ids||[]).length>0,transient=!!state.addCo[item.id];
+ const addOpt=(!hasCo&&!transient)?opt(ADD_CO,'','add additional'):'';
+ return `<span class="inline-owner"><select data-step-owner="${esc(item.id)}" aria-label="Assign ${esc(item.title)}" ${state.ownerBusy[item.id]?'disabled':''}>${opt('',item.owner_id||'','Unassigned')}${state.data.members.map(m=>opt(m.id,item.owner_id,m.name)).join('')}${addOpt}</select>${hasCo||transient?coOwnerSelect(item,d,transient):''}<span data-owner-feedback="${esc(item.id)}" role="status">${esc(state.ownerFeedback[item.id]||'')}</span></span>`;
 }
 async function changeStepOwner(id,next){
  const item=state.data.sched.find(i=>i.id===id),uid=session?.user?.id;
@@ -254,7 +264,25 @@ async function changeStepOwner(id,next){
 }
 function stepOwnerControl(item,d){
  if(isFreelancer(state.access)||projectIsDone(d.pm[item.project_id],d.pm))return '';
- return `<label class="step-owner-control">Assigned to<select data-step-owner="${esc(item.id)}" aria-label="Assign ${esc(item.title)}" ${state.ownerBusy[item.id]?'disabled':''}>${opt('',item.owner_id||'','Unassigned')}${state.data.members.map(m=>opt(m.id,item.owner_id,m.name)).join('')}</select><span data-owner-feedback="${esc(item.id)}" role="status"></span></label><details class="co-owners"><summary>Also assigned${(item.co_owner_ids||[]).length?' ('+item.co_owner_ids.length+')':''}</summary>${state.data.members.filter(m=>m.id!==item.owner_id).map(m=>`<label class="co-owner-opt"><input type="checkbox" data-step-coowner="${esc(item.id)}" value="${esc(m.id)}" ${(item.co_owner_ids||[]).includes(m.id)?'checked':''}> ${esc(m.name)}</label>`).join('')}<span data-coowner-feedback="${esc(item.id)}" role="status"></span></details>`;
+ const hasCo=(item.co_owner_ids||[]).length>0,transient=!!state.addCo[item.id];
+ const addOpt=(!hasCo&&!transient)?opt(ADD_CO,'','add additional'):'';
+ return `<label class="step-owner-control">Assigned to<select data-step-owner="${esc(item.id)}" aria-label="Assign ${esc(item.title)}" ${state.ownerBusy[item.id]?'disabled':''}>${opt('',item.owner_id||'','Unassigned')}${state.data.members.map(m=>opt(m.id,item.owner_id,m.name)).join('')}${addOpt}</select>${hasCo||transient?coOwnerSelect(item,d,transient):''}<span data-owner-feedback="${esc(item.id)}" role="status"></span></label>`;
+}
+async function changeStepCo(id,next){
+ const item=state.data.sched.find(i=>i.id===id),uid=session?.user?.id;
+ if(!item||state.ownerBusy[id])return;
+ const transient=!!state.addCo[id],extras=(item.co_owner_ids||[]).slice(1);
+ if(next===REMOVE_CO&&transient){delete state.addCo[id];render();if(state.open)refreshDetail();return;}
+ if(!next&&transient)return;
+ const arr=next===REMOVE_CO?extras:[next,...extras];
+ const old=item.co_owner_ids||[];
+ state.ownerBusy[id]=true;state.ownerFeedback[id]='Saving...';
+ const copies=()=>[...document.querySelectorAll('[data-step-co]')].filter(el=>el.dataset.stepCo===id);
+ const feedback=()=>document.querySelectorAll('[data-owner-feedback]').forEach(el=>{if(el.dataset.ownerFeedback===id)el.textContent=state.ownerFeedback[id]||'';});
+ copies().forEach(el=>el.disabled=true);feedback();updateDailyPendingUI();
+ try{const r=await saveStepCoOwners(supabase,item,arr);if(session?.user?.id!==uid)return;item.co_owner_ids=r.co_owner_ids||[];delete state.addCo[id];state.ownerFeedback[id]='Saved.';delete state.ownerBusy[id];dailyMemo=null;dailyHtmlMemo=null;render();if(state.open)refreshDetail();}
+ catch{if(session?.user?.id===uid){state.ownerFeedback[id]='Not saved. Try again.';copies().forEach(el=>{el.value=old[0]||'';el.disabled=false;});feedback();}}
+ finally{delete state.ownerBusy[id];updateDailyPendingUI();}
 }
 function timingWarning(item){
  const issues=schedulingIssues(state.data.sched,derive().pm,officeHolidays)[item.id];
@@ -777,9 +805,9 @@ function bind(root){
  root.querySelectorAll('[data-project-listing]').forEach(el=>el.ontoggle=()=>{if(!el.isConnected)return;state.expandedProjects[el.dataset.projectListing]=el.open;if(el.open&&!el.querySelector('.listing-content'))render();});
  root.querySelectorAll('[data-expand-projects]').forEach(b=>b.onclick=()=>{const expanded=b.dataset.expandProjects==='true';root.querySelectorAll('[data-project-listing]').forEach(el=>{state.expandedProjects[el.dataset.projectListing]=expanded;el.open=expanded;});render();});
  root.querySelectorAll('.card-edit-controls').forEach(el=>{if(el.closest('dialog')||el.closest('.workload-step[open]'))el.open=true;});
- root.querySelectorAll('[data-step-coowner]').forEach(el=>el.onchange=async()=>{const item=state.data.sched.find(i=>i.id===el.dataset.stepCoowner),box=el.closest('details'),fb=box.querySelector('[role=status]'),next=[...box.querySelectorAll('[data-step-coowner]:checked')].map(x=>x.value);box.querySelectorAll('input').forEach(x=>x.disabled=true);fb.textContent='Saving...';try{const r=await saveStepCoOwners(supabase,item,next);item.co_owner_ids=r.co_owner_ids;render();if(state.open)refreshDetail();}catch{fb.textContent='Not saved. Refresh and try again.';el.checked=!el.checked;box.querySelectorAll('input').forEach(x=>x.disabled=false);}});
+ root.querySelectorAll('[data-step-co]').forEach(el=>{el.onclick=e=>{e.stopPropagation();};el.onchange=()=>changeStepCo(el.dataset.stepCo,el.value);});
  root.querySelectorAll('[data-project-cx]').forEach(el=>el.onchange=async()=>{const p=state.data.projects.find(x=>x.id===el.dataset.projectCx),fb=el.parentElement.querySelector('[role=status]');el.disabled=true;fb.textContent='Saving...';try{const r=await saveProjectCx(supabase,p,el.value.split(',').map(x=>x.trim()).filter(Boolean));p.cx=r.cx;render();if(state.open)refreshDetail();}catch{fb.textContent='Not saved. Refresh and try again.';el.disabled=false;}});
- root.querySelectorAll('[data-step-owner]').forEach(el=>{el.onclick=e=>{e.stopPropagation();};el.onchange=()=>changeStepOwner(el.dataset.stepOwner,el.value);});
+ root.querySelectorAll('[data-step-owner]').forEach(el=>{el.onclick=e=>{e.stopPropagation();};el.onchange=()=>{if(el.value===ADD_CO){state.addCo[el.dataset.stepOwner]=true;render();if(state.open)refreshDetail();return;}changeStepOwner(el.dataset.stepOwner,el.value);};});
  root.querySelectorAll('[data-step-status]').forEach(el=>el.onchange=()=>changeStepStatus(el.dataset.stepStatus,el.value));
  root.querySelectorAll('select.pill[data-step-status]').forEach(el=>el.onclick=e=>e.preventDefault());
  root.querySelectorAll('[data-schedule-hide-done]').forEach(el=>el.onchange=()=>{state.scheduleHideDone[el.dataset.scheduleHideDone]=el.checked;if(state.open)refreshDetail();else render();});
