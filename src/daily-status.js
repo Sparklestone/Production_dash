@@ -39,12 +39,24 @@ export function dailyStatus({items,updates=[],projects,clients=[],today,now=new 
   if(i.status==='done'&&when>=start&&when<=now.getTime()&&!added&&!/^RETIRED/i.test(i.title))b.changed.push({kind:'done',item:i,project:p,at:i.updated_at,text:'Done'});
   if(i.status==='done'&&i.updated_at&&!/^RETIRED/i.test(i.title)&&dayKey(when)>=doneStart)b.rdone.push({item:i,project:p,at:i.updated_at});
   if(i.status==='done'||projectIsDone(p,projects))continue;
-  const due=dateKey(i.due_date);seen.add(i.id);
-  if(due&&due<today)b.urgent.push({item:i,project:p,due,why:'Past due'});
-  else if(due===today)b.urgent.push({item:i,project:p,due,why:'Due today'});
-  else if(blocked(i))b.urgent.push({item:i,project:p,due,why:i.status==='blocked'?'Blocked':'Waiting on others'});
-  else if(due&&due<=horizon)b.next.push({item:i,project:p,due});
-  else if(due&&due<=end)b.week.push({item:i,project:p,due});
+  const due=dateKey(i.due_date);
+  const mark=x=>{seen.add(i.id);return x;};
+  if(due&&due<today)b.urgent.push(mark({item:i,project:p,due,why:'Past due'}));
+  else if(due===today)b.urgent.push(mark({item:i,project:p,due,why:'Due today'}));
+  else if(blocked(i))b.urgent.push(mark({item:i,project:p,due,why:i.status==='blocked'?'Blocked':'Waiting on others'}));
+  else if(due&&due<=horizon)b.next.push(mark({item:i,project:p,due}));
+  else if(due&&due<=end)b.week.push(mark({item:i,project:p,due}));
+ }
+ // An adjusted step must not silently drop off the status (Aaron, Oct 26):
+ // a non-done step edited inside the window that landed in no list above
+ // (e.g. unblocked and undated) stays visible as "[Updating]" for the
+ // window. Brand-new steps were never on the status, so they are excluded.
+ for(const i of items){
+  const p=projects[i.project_id];if(!p)continue;
+  if(i.status==='done'||projectIsDone(p,projects))continue;
+  if(seen.has(i.id))continue;
+  const when=i.updated_at?new Date(i.updated_at).getTime():0,created=i.created_at?new Date(i.created_at).getTime():0;
+  if(when>=start&&when<=now.getTime()&&created<start)brand(p).changed.push({kind:'updating',item:i,project:p,at:i.updated_at});
  }
  for(const u of updates){
   const p=projects[u.project_id];if(!p||!u.created_at)continue;const at=new Date(u.created_at).getTime();
@@ -67,8 +79,8 @@ const outlineDate=d=>{if(!d)return '';const[,m,day]=d.split('-');return `${OUTLI
 const outlineEsc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const outlineProjects=(b)=>{
  const projs=new Map();
- const get=p=>projs.get(p.id)||(projs.set(p.id,{p,notes:[],done:[],steps:[],rdone:[]}),projs.get(p.id));
- for(const x of b.changed){const g=get(x.project);(x.kind==='note'?g.notes:g.done).push(x);}
+ const get=p=>projs.get(p.id)||(projs.set(p.id,{p,notes:[],done:[],updating:[],steps:[],rdone:[]}),projs.get(p.id));
+ for(const x of b.changed){const g=get(x.project);(x.kind==='note'?g.notes:x.kind==='updating'?g.updating:g.done).push(x);}
  for(const x of b.rdone||[])get(x.project).rdone.push(x);
  for(const [k,rows] of [['urgent',b.urgent],['next',b.next],['week',b.week]])for(const x of rows)get(x.project).steps.push({...x,cat:k});
  const rank=g=>g.steps.some(s=>s.cat==='urgent')?0:1,first=g=>g.steps.map(s=>s.due||'9999').sort()[0]||'9999';
@@ -89,6 +101,7 @@ const outlineModel=(b,{projects,mm,projectId}={})=>{
   for(const n of g.notes)lines.push(n.text);
   for(const x of g.steps.sort((a,b2)=>(a.due||'9999').localeCompare(b2.due||'9999')))
    lines.push(`${x.item.title} - ${owner(x.item)} - ${x.cat==='urgent'?x.why:'Due'}${x.due?' '+outlineDate(x.due):''}`);
+  for(const x of g.updating)lines.push(`[Updating] ${x.item.title} - ${owner(x.item)}`);
   for(const x of g.done)lines.push(`${x.item.title} - ${owner(x.item)} - Done`);
   if(g.rdone?.length){lines.push('Done (last 5 working days):');for(const x of g.rdone)lines.push(`${x.item.title} - ${owner(x.item)} - Done ${outlineDate(dayKey(new Date(x.at).getTime()))}`);}
   return {name:g.p.name,id:g.p.id,merged:!projectId&&g.p.id===b.project_id,lines};

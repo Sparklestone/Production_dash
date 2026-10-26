@@ -123,3 +123,18 @@ test('Done subsection lists steps completed in the last 5 working days',()=>{
  assert.ok(html.includes('Done (last 5 working days):'),'HTML copy includes Done subsection');
  assert.equal(dayKey(new Date('2026-10-21T05:59:00Z').getTime()),'2026-10-20','late-night UTC still prior Denver day');
 });
+
+test('adjusted steps that would drop off stay visible as [Updating]',()=>{
+ const items=[
+  {id:'1',project_id:'p',title:'Receive brand kit',status:'in_progress',due_date:null,created_at:'2026-10-10T00:00:00Z',updated_at:'2026-10-19T14:00:00Z'},
+  {id:'2',project_id:'p',title:'New intake',status:'pending',due_date:null,created_at:'2026-10-19T14:00:00Z',updated_at:'2026-10-19T14:00:00Z'},
+  {id:'3',project_id:'p',title:'Dated step',status:'pending',due_date:'2026-10-19',created_at:'2026-10-10T00:00:00Z',updated_at:'2026-10-19T14:00:00Z'},
+  {id:'4',project_id:'p',title:'Old untouched',status:'pending',due_date:null,created_at:'2026-10-10T00:00:00Z',updated_at:'2026-10-10T00:00:00Z'}];
+ const r=dailyStatus({items,updates:[],projects,clients,today:'2026-10-19',now});
+ const acme=r.brands.find(b=>b.name==='Acme');
+ assert.deepEqual(acme.changed.filter(x=>x.kind==='updating').map(x=>x.item.id),['1']);
+ assert.deepEqual(acme.urgent.map(x=>x.item.id),['3']);
+ const text=brandOutline(acme,{projects,mm:{}});
+ assert.ok(text.includes('[Updating] Receive brand kit - No owner'),text);
+ assert.ok(!text.includes('New intake'),text);
+});
