@@ -495,3 +495,7 @@ select.pill:disabled{cursor:default;opacity:.7}
  .finished-task>summary>.owner{max-width:100%;white-space:normal}
  .finished-task .inline-owner{max-width:100%;flex-wrap:wrap}
 }
+/* Now/Next may include editable owners: don't clip a live dropdown group. */
+.listing-nownext:has(.inline-owner){white-space:normal;overflow:visible;text-overflow:clip;max-width:none;flex:1 1 300px}
+.listing-nownext .inline-owner{max-width:100%;vertical-align:middle}
+@media(max-width:650px){.listing-nownext .inline-owner{display:flex;width:100%;margin-top:4px}.listing-nownext .inline-owner select{flex:1 1 0;min-width:0}}
