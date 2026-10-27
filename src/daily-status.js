@@ -30,7 +30,7 @@ export function dailyStatus({items,updates=[],projects,clients=[],today,now=new 
  const cm=Object.fromEntries(clients.map(c=>[c.id,c])),start=businessWindowStart(now).getTime(),end=shiftDate(today,7),horizon=shiftDate(today,nextDays),doneStart=doneWindowStart(today);
  const rootOf=p=>{let n=p,s=0;while(n?.parent_id&&projects[n.parent_id]&&s++<20)n=projects[n.parent_id];return n;};
  const brands={};
- const brand=p=>{const root=rootOf(p),c=cm[p?.client_id]||cm[root?.client_id],name=c?.name||root?.name||'No client',key=c?.id||'p:'+(root?.id||'none');return brands[key]||(brands[key]={key,name,project_id:root?.id||p?.id,changed:[],urgent:[],next:[],week:[],active:[],rdone:[]});};
+ const brand=p=>{const root=rootOf(p),c=cm[p?.client_id]||cm[root?.client_id],name=(c?(c.aka?c.name+'/'+c.aka:c.name):null)||root?.name||'No client',key=c?.id||'p:'+(root?.id||'none');return brands[key]||(brands[key]={key,name,project_id:root?.id||p?.id,changed:[],urgent:[],next:[],week:[],active:[],rdone:[]});};
  const seen=new Set();
  for(const i of items){
   const p=projects[i.project_id];if(!p)continue;
