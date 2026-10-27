@@ -996,3 +996,7 @@ setInterval(()=>{if(session&&state.data&&!document.hidden&&!document.querySelect
 
 // Read only queue status without replacing drafts or open dialogs.
 setInterval(()=>{if(session&&state.data&&!document.hidden)refreshRevisions();},60*1000);
+
+// In-memory fixture hook for verification and support: lets a signed-in session inject
+// throwaway data and re-render. Nothing here writes to the server.
+window.__pdash={state,derive,render,clientName,openClientAka,openDetail};
