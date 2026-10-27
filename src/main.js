@@ -747,10 +747,13 @@ function bind(root){
  root.querySelectorAll('[data-step-row]>summary,.workload-step>summary,.finished-task>summary,.project-listing>summary').forEach(s=>{
   // Record the pre-click checkbox state on mousedown: browsers pre-toggle the checkbox before
   // the click handler runs and revert on preventDefault, so the click handler cannot infer intent.
-  s.addEventListener('mousedown',e=>{const sel=e.target.closest('.step-select');if(!sel||!s.contains(sel))return;const inp=sel.querySelector('input');if(inp)s.dataset.preSelectCheck=inp.checked?'1':'0';});
-  s.addEventListener('click',e=>{if(e.target.closest('.inline-owner')){e.preventDefault();return;}const sel=e.target.closest('.step-select');if(!sel||!s.contains(sel))return;const inp=sel.querySelector('input');if(!inp)return;const was=s.dataset.preSelectCheck||'';if(was==='')return; // keyboard activation: no recorded pre-state, let native toggle + change proceed
-  e.preventDefault();s.dataset.preSelectCheck='';inp.checked=was!=='1';inp.dispatchEvent(new Event('change',{bubbles:true}));});
+  // Selects inside expandable summaries: input clicks toggle natively (their own listener
+  // stops propagation so the details never opens); label-text clicks are handled manually
+  // here. Never preventDefault an input's own click - the browser reverts the toggle.
+  s.addEventListener('click',e=>{if(e.target.closest('.inline-owner')){e.preventDefault();return;}const sel=e.target.closest('.step-select');if(!sel||!s.contains(sel))return;const inp=sel.querySelector('input');if(!inp||e.target===inp)return;
+  e.preventDefault();inp.checked=!inp.checked;inp.dispatchEvent(new Event('change',{bubbles:true}));});
  });
+ root.querySelectorAll('.step-select input').forEach(inp=>inp.addEventListener('click',e=>e.stopPropagation()));
  root.querySelectorAll('[data-expand-workload]').forEach(b=>b.onclick=()=>{const expanded=b.dataset.expandWorkload==='true';root.querySelectorAll('.workload-table [data-step-row],.workload-unassigned [data-step-row]').forEach(el=>{state.stepRowOpen[el.dataset.stepRow]=expanded;el.open=expanded;});});
  root.querySelector('#hide-done')?.addEventListener('change',e=>{state.hideDone=e.target.checked;render();document.querySelector('#hide-done')?.focus();});
  updateRevisionUI();
