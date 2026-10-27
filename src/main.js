@@ -6,7 +6,7 @@ import {timingPattern} from './timing-patterns.js';
 import {officeHolidays,officeHolidayCoverage} from './office-holidays.js';
 import {timingPlan,schedulingIssues,shiftWorkDays,dueChange,isWorkDay} from './timing.js';
 import {saveWorkDays,suggestedDateLabel} from './work-days.js';
-import {selectedSteps,workstreamChoices,applyBulk} from './bulk-actions.js';
+import {selectedSteps,workstreamChoices,applyBulk,combineOptions,combinePlan,executeCombine} from './bulk-actions.js';
 import {projectPath,displayProjectPath,workstreamLabel,flatProjectBranches,brandClient,breadcrumbParts,flattenedListings,effectiveClientId} from './workstream-display.js';
 import {stepStatusOptions,statusChoice,saveStepStatus} from './step-status.js';
 import {statusLabel} from './status-labels.js';
@@ -327,19 +327,20 @@ function combineBar(){
  return `<aside id="combine-bar" class="bulk-toolbar" ${n<1?'hidden':''} aria-label="Selected workstream actions"><strong data-project-selection-count>${n} workstreams selected</strong><button data-combine-projects ${n!==2?'disabled':''}>Combine</button><button data-clear-project-selection>Clear selection</button><span role="status" id="combine-feedback">${esc(state.combineFeedback)}</span></aside>`;
 }
 async function openCombine(){
- const d=derive(),ids=state.selectedProjects;if(ids.length!==2)return;
- const pair=ids.map(id=>d.pm[id]);if(pair.some(p=>!p))return;
- const [a,b]=pair,stepsOf=id=>state.data.sched.filter(i=>i.project_id===id);
+ const d=derive(),ids=state.selectedProjects;
+ const opts=combineOptions(ids,d.pm,state.data.sched);if(!opts)return;
  const dialog=document.querySelector('#combine-dialog');
- dialog.innerHTML=`<div class="dialog-head"><h2>Combine workstreams</h2><button data-close aria-label="Close combine">×</button></div><p>Every step - open and done - moves into the workstream you keep. The other workstream stays in place, empty. Dates, owners, statuses and history move with the steps.</p><form id="combine-form"><fieldset><legend>Which workstream keeps all the steps?</legend>${[[a,b],[b,a]].map(([keep,other])=>`<label class="combine-choice"><input type="radio" name="keep" value="${esc(keep.id)}" required> <span><strong>${esc(keep.name)}</strong><small>keeps its ${stepsOf(keep.id).length} steps and gains ${stepsOf(other.id).length} from ${esc(other.name)}</small></span></label>`).join('')}</fieldset><button class="primary" type="submit">Combine workstreams</button><p role="status" id="combine-save-status"></p></form>`;
+ dialog.innerHTML=`<div class="dialog-head"><h2>Combine workstreams</h2><button data-close aria-label="Close combine">×</button></div><p>Every step - open and done - moves into the workstream you keep. The other workstream stays in place, empty. Dates, owners, statuses and history move with the steps.</p><form id="combine-form"><fieldset><legend>Which workstream keeps all the steps?</legend>${opts.map(o=>`<label class="combine-choice"><input type="radio" name="keep" value="${esc(o.keep.id)}" required> <span><strong>${esc(o.keep.name)}</strong><small>keeps its ${o.keepCount} steps and gains ${o.gainCount} from ${esc(o.source.name)}</small></span></label>`).join('')}</fieldset><button class="primary" type="submit">Combine workstreams</button><p role="status" id="combine-save-status"></p></form>`;
  bind(dialog);dialog.showModal();
  dialog.querySelector('#combine-form').onsubmit=async e=>{
-  e.preventDefault();const keep=new FormData(e.target).get('keep'),source=ids.find(id=>id!==keep);
-  const items=stepsOf(source),fb=dialog.querySelector('#combine-save-status'),btn=e.target.querySelector('button[type=submit]');
-  if(!keep||!source)return;
-  if(!items.length){fb.textContent=`${d.pm[source]?.name||'The other workstream'} has no steps to move.`;return;}
+  e.preventDefault();
+  const plan=combinePlan(ids,new FormData(e.target).get('keep'),d.pm,state.data.sched);
+  const fb=dialog.querySelector('#combine-save-status'),btn=e.target.querySelector('button[type=submit]');
+  if(!plan)return;
+  if(!plan.items.length){fb.textContent=`${plan.source.name} has no steps to move.`;return;}
+  if(plan.items.length<2){fb.textContent=`${plan.source.name} has only 1 step - combining moves 2 or more. Move that step from its own card instead.`;return;}
   btn.disabled=true;fb.textContent='Saving...';
-  try{await applyBulk(supabase,items,'move',{target_id:keep,author_name:state.access?.display_name||session.user.email});state.selectedProjects=[];state.combineFeedback='Workstreams combined.';dialog.close();await load();}
+  try{await executeCombine(supabase,plan,state.access?.display_name||session.user.email);state.selectedProjects=[];state.combineFeedback='Workstreams combined.';dialog.close();await load();}
   catch(error){fb.textContent='Not saved. '+error.message;btn.disabled=false;}
  };
 }
