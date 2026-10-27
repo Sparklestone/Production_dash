@@ -25,7 +25,7 @@ export function brandClient(project,projects,clients){
 // Card breadcrumb: brand plus project path, dropping a root that repeats the brand.
 export function breadcrumbParts(project,projects,clients){
  const brand=brandClient(project,projects,clients);
- let path=displayProjectPath(project,projects);
+ let path=project.is_brand_bucket?[]:displayProjectPath(project,projects);
  if(brand&&path.length){const rootName=String(path[0].name||'').toLowerCase();if(rootName===String(brand.name||'').toLowerCase()||brand.aka&&rootName===String(brand.aka).toLowerCase())path=path.slice(1);}
  return {brand,path};
 }

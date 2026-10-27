@@ -48,3 +48,9 @@ test('breadcrumb drops a root that repeats the brand AKA too',()=>{
  assert.equal(a.brand.name,'Marquette Transport');
  assert.deepEqual(a.path.map(x=>x.id),['ws']);
 });
+
+test('brand-only steps keep brand breadcrumb without presenting storage bucket as a project',()=>{
+ const p={id:'bucket',name:'No project',client_id:'a',is_brand_bucket:true};
+ const result=breadcrumbParts(p,{bucket:p},{a:{id:'a',name:'Brand'}});
+ assert.equal(result.brand.name,'Brand');assert.deepEqual(result.path,[]);
+});
