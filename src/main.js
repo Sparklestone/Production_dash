@@ -354,7 +354,7 @@ async function openCreate(kind){
 function openClientAka(cid){
  const d=derive(),c=d.cm[cid];if(!c)return;
  const dialog=document.querySelector('#create-dialog');
- dialog.innerHTML=`<div class="dialog-head"><h2>${esc(c.name)}</h2><button data-close aria-label="Close client names">×</button></div><p>Both names stay linked to this client for matching, whichever comes first.</p><form id="aka-form"><label>Also known as<input name="aka" maxlength="120" value="${esc(c.aka||'')}" placeholder="Rebrand or alias name"></label><button class="primary" type="submit">Save names</button>${c.aka?'<button type="button" class="text-button" data-flip-names>Flip names</button>':''}<p role="status" id="aka-status"></p></form>`;
+ dialog.innerHTML=`<div class="dialog-head"><h2>${esc(clientName(c))}</h2><button data-close aria-label="Close client names">×</button></div><p>Both names stay linked to this client for matching, whichever comes first.</p><form id="aka-form"><label>Also known as<input name="aka" maxlength="120" value="${esc(c.aka||'')}" placeholder="Rebrand or alias name"></label><button class="primary" type="submit">Save names</button>${c.aka?'<button type="button" class="text-button" data-flip-names>Flip names</button>':''}<p role="status" id="aka-status"></p></form>`;
  bind(dialog);
  const form=dialog.querySelector('#aka-form'),st=dialog.querySelector('#aka-status');
  form.onsubmit=async e=>{e.preventDefault();st.textContent='Saving...';const uid=session?.user?.id;
@@ -645,7 +645,7 @@ function todayView(d){
 function workloadStep(i,d){return taskCard(i,d);}
 function workloadGroups(items,d){
  const groups=[],byKey={};
- items.forEach(i=>{const p=d.pm[i.project_id];const path=p?displayProjectPath(p,d.pm):[{id:'',name:'Unknown project'}];const root=path[0],brand=p?brandClient(p,d.pm,d.cm):null,groupKey=brand?('client:'+(brand.id||brand.name)):('project:'+(root.id||root.name)),groupName=brand?.name||root.name||'Unknown project';
+ items.forEach(i=>{const p=d.pm[i.project_id];const path=p?displayProjectPath(p,d.pm):[{id:'',name:'Unknown project'}];const root=path[0],brand=p?brandClient(p,d.pm,d.cm):null,groupKey=brand?('client:'+(brand.id||brand.name)):('project:'+(root.id||root.name)),groupName=brand?clientName(brand):root.name||'Unknown project';
  // Project path listed before subproject/step names; drop a root that just repeats the client.
  const parts=path.map((part,n)=>n?workstreamLabel(part,d.pm):part.name);
  while(parts.length&&String(parts[0]||'').trim().toLowerCase()===String(groupName||'').trim().toLowerCase())parts.shift();
@@ -775,7 +775,7 @@ async function openComment(pid,iid,brand=''){
  lastFocus=document.activeElement;
  const dialog=document.querySelector('#comment-dialog');
  dialog.dataset.commentProject=pid;dialog.dataset.commentItem=iid||'';
- dialog.innerHTML=`<div class="dialog-head"><span class="eyebrow">MESSAGE TO INSTINCT</span><button class="close" data-close aria-label="Close comment">×</button></div><h2 id="comment-title">What should I know?</h2><p class="comment-context">${brand?esc('Whole brand: '+brand+' (filed under '+p.name+')'):esc(joinedNames(d.cm[p.client_id]?.name||'Production',p.name,i?.title))}</p><form id="comment-form"><label for="comment-name">Your name</label><input id="comment-name" name="name" required maxlength="120" autocomplete="name" value="${esc(session.user.user_metadata?.display_name||'')}"><label for="comment-note">Your message</label><textarea id="comment-note" name="note" required maxlength="5000" rows="5" placeholder="Share an update, correction or question"></textarea><p class="muted">Saved with your signed-in email and the client context. Instinct checks new messages every few minutes. A message does not change the client automatically.</p><button class="primary" type="submit">Send to Instinct</button><p id="comment-status" role="status" aria-live="polite"></p></form>`;
+ dialog.innerHTML=`<div class="dialog-head"><span class="eyebrow">MESSAGE TO INSTINCT</span><button class="close" data-close aria-label="Close comment">×</button></div><h2 id="comment-title">What should I know?</h2><p class="comment-context">${brand?esc('Whole brand: '+brand+' (filed under '+p.name+')'):esc(joinedNames(clientName(d.cm[p.client_id])||'Production',p.name,i?.title))}</p><form id="comment-form"><label for="comment-name">Your name</label><input id="comment-name" name="name" required maxlength="120" autocomplete="name" value="${esc(session.user.user_metadata?.display_name||'')}"><label for="comment-note">Your message</label><textarea id="comment-note" name="note" required maxlength="5000" rows="5" placeholder="Share an update, correction or question"></textarea><p class="muted">Saved with your signed-in email and the client context. Instinct checks new messages every few minutes. A message does not change the client automatically.</p><button class="primary" type="submit">Send to Instinct</button><p id="comment-status" role="status" aria-live="polite"></p></form>`;
  bind(dialog);dialog.showModal();dialog.querySelector('#comment-name').focus();
  dialog.querySelector('form').onsubmit=async e=>{
   e.preventDefault();const name=dialog.querySelector('#comment-name').value.trim(),note=dialog.querySelector('#comment-note').value.trim();

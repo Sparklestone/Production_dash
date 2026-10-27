@@ -40,3 +40,11 @@ test('effectiveClientId falls back to the root project client',()=>{
  assert.equal(effectiveClientId(pm.r,pm),'bill');
  assert.equal(effectiveClientId(pm.n,pm),null);
 });
+
+test('breadcrumb drops a root that repeats the brand AKA too',()=>{
+ const clients={mt:{id:'mt',name:'Marquette Transport',aka:'Canal Barge'}};
+ const pm={root:{id:'root',name:'Canal Barge',client_id:'mt'},ws:{id:'ws',name:'Brand guidelines',parent_id:'root'}};
+ const a=breadcrumbParts(pm.ws,pm,clients);
+ assert.equal(a.brand.name,'Marquette Transport');
+ assert.deepEqual(a.path.map(x=>x.id),['ws']);
+});

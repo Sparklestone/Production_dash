@@ -26,7 +26,7 @@ export function brandClient(project,projects,clients){
 export function breadcrumbParts(project,projects,clients){
  const brand=brandClient(project,projects,clients);
  let path=displayProjectPath(project,projects);
- if(brand&&path.length&&String(path[0].name||'').toLowerCase()===String(brand.name||'').toLowerCase())path=path.slice(1);
+ if(brand&&path.length){const rootName=String(path[0].name||'').toLowerCase();if(rootName===String(brand.name||'').toLowerCase()||brand.aka&&rootName===String(brand.aka).toLowerCase())path=path.slice(1);}
  return {brand,path};
 }
 
