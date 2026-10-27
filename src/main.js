@@ -483,7 +483,7 @@ function projectStepListings(p,d,hideDone=state.view==='projects'&&state.hideDon
 }
 function taskBreadcrumb(p,d){
  const {brand,path}=breadcrumbParts(p,d.pm,d.cm),parts=path.map((part,n)=>`${n||brand?'<span class="breadcrumb-separator" aria-hidden="true">›</span>':''}<button class="text-button" data-open="${esc(part.id)}">${esc(n?workstreamLabel(part,d.pm):part.name)}</button>`).join('');
- return `<span class="task-breadcrumb">${brand?`<span class="breadcrumb-brand">${esc(brand.name)}</span>`:''}${parts}</span>`;
+ return `<span class="task-breadcrumb">${brand?`<span class="breadcrumb-brand">${esc(clientName(brand))}</span>`:''}${parts}</span>`;
 }
 function projectSchedule(p,d,rollup=false){
  const key=rollup?'page-'+p.id:p.id,hideDone=state.scheduleHideDone[key]??(state.view==='projects'&&state.hideDone);
