@@ -29,3 +29,17 @@ export function breadcrumbParts(project,projects,clients){
  if(brand&&path.length&&String(path[0].name||'').toLowerCase()===String(brand.name||'').toLowerCase())path=path.slice(1);
  return {brand,path};
 }
+
+// One flat listing of every project: each root followed by its descendants (tree order),
+// then any orphans whose parent is missing. Projects and workstreams are the same level.
+export function flattenedListings(projects){
+ const byParent={};Object.values(projects).forEach(p=>{(byParent[p.parent_id||'']=byParent[p.parent_id||'']||[]).push(p);});
+ const result=[],seen=new Set();
+ function visit(p){if(!p||seen.has(p.id))return;seen.add(p.id);result.push(p);(byParent[p.id]||[]).forEach(visit);}
+ (byParent['']||[]).forEach(visit);
+ Object.values(projects).forEach(visit);
+ return result;
+}
+
+// Effective client: the project's own client, else its root project's.
+export function effectiveClientId(project,projects){return project.client_id||projectPath(project,projects)[0]?.client_id||null;}

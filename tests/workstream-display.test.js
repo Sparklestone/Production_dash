@@ -24,3 +24,19 @@ test('breadcrumb drops a root that repeats the brand, keeps the workstream',()=>
  const c=breadcrumbParts(pm.root,pm,clients);
  assert.deepEqual(c.path,[]);
 });
+
+import {flattenedListings,effectiveClientId} from '../src/workstream-display.js';
+test('flattenedListings lists every project once: roots, descendants, then orphans',()=>{
+ const pm={p:{id:'p',name:'Root',status:'active'},c:{id:'c',name:'Child',parent_id:'p'},g:{id:'g',name:'Grandchild',parent_id:'c'},q:{id:'q',name:'Other root'},o:{id:'o',name:'Orphan',parent_id:'missing'}};
+ assert.deepEqual(flattenedListings(pm).map(x=>x.id),['p','c','g','q','o']);
+});
+test('flattenedListings survives a parent cycle without dropping or duplicating',()=>{
+ const pm={x:{id:'x',name:'X',parent_id:'y'},y:{id:'y',name:'Y',parent_id:'x'}};
+ assert.deepEqual(flattenedListings(pm).map(p=>p.id).sort(),['x','y']);
+});
+test('effectiveClientId falls back to the root project client',()=>{
+ const pm={r:{id:'r',name:'Root',client_id:'bill'},w:{id:'w',name:'WS',parent_id:'r'},n:{id:'n',name:'No client'}};
+ assert.equal(effectiveClientId(pm.w,pm),'bill');
+ assert.equal(effectiveClientId(pm.r,pm),'bill');
+ assert.equal(effectiveClientId(pm.n,pm),null);
+});
