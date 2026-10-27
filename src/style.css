@@ -475,3 +475,23 @@ select.pill:disabled{cursor:default;opacity:.7}
 .step-row>summary>.bb-custom-select-container{width:auto!important;flex:0 0 auto!important;max-width:125px}.step-row>summary>.bb-custom-select-container select{width:auto}.step-row>summary{flex-wrap:nowrap}.step-row>summary .task-row-title{flex:1;min-width:120px}@media(max-width:750px){.step-row>summary{flex-wrap:wrap}}
 
 #combine-bar{top:58px}#combine-bar button:disabled{opacity:.45;cursor:default}.project-listing>summary .project-select{color:#d4d1d2;margin:0}.project-listing>summary .project-select input{accent-color:#51E8B7}.combine-choice{display:flex;gap:10px;align-items:flex-start;margin:10px 0;font-size:13px}.combine-choice input{display:inline-block;width:16px;height:16px;min-height:16px;margin:3px 0 0;padding:0;flex:none;accent-color:#241f20}.combine-choice span{flex:1;min-width:0}.combine-choice small{display:block;color:#6a6466}#combine-dialog fieldset{border:1px solid #d9e1d9;border-radius:6px;margin:12px 0;padding:10px}#combine-dialog{max-width:560px;width:calc(100% - 32px)}
+
+/* Owner controls take their full width in the row; never paint beneath status. */
+.step-row>summary{flex-wrap:wrap}
+.step-row>summary .task-row-title{flex:1 1 220px;min-width:120px}
+.step-row>summary .owner{max-width:none;min-width:0;flex:0 0 auto}
+.step-row>summary .inline-owner{width:max-content;max-width:100%;flex-shrink:0}
+.inline-owner select{flex:0 0 auto}
+.inline-owner [role=status]:empty{display:none}
+.finished-task>summary>.owner{max-width:none;min-width:0}
+@media(max-width:650px){
+ .step-row>summary .task-row-title{flex:1 1 calc(100% - 70px)}
+ .step-row>summary .owner{margin-left:0;max-width:100%;flex:0 1 auto}
+ .step-row>summary .inline-owner{width:auto;max-width:100%;min-width:0}
+ .step-row>summary .inline-owner select{flex:1 1 0;min-width:0;max-width:155px}
+ .step-row>summary .inline-owner>.bb-custom-select-container{min-width:0;flex:1 1 0!important}
+ .step-row>summary .owner .bb-custom-select-container select{max-width:100%}
+ .finished-task>summary{flex-wrap:wrap}
+ .finished-task>summary>.owner{max-width:100%;white-space:normal}
+ .finished-task .inline-owner{max-width:100%;flex-wrap:wrap}
+}
