@@ -18,5 +18,6 @@ export function combinePlan(ids,keepId,projects,items){
 }
 export async function executeCombine(client,plan,author){
  if(!plan||!plan.items.length)throw Error('No steps to move');
+ if(plan.items.length>100)throw Error(`Combining moves at most 100 steps at once - ${plan.source.name} has ${plan.items.length}.`);
  return applyBulk(client,plan.items,'move',{target_id:plan.keep.id,author_name:author});
 }

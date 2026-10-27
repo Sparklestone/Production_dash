@@ -338,7 +338,6 @@ async function openCombine(){
   const fb=dialog.querySelector('#combine-save-status'),btn=e.target.querySelector('button[type=submit]');
   if(!plan)return;
   if(!plan.items.length){fb.textContent=`${plan.source.name} has no steps to move.`;return;}
-  if(plan.items.length<2){fb.textContent=`${plan.source.name} has only 1 step - combining moves 2 or more. Move that step from its own card instead.`;return;}
   btn.disabled=true;fb.textContent='Saving...';
   try{await executeCombine(supabase,plan,state.access?.display_name||session.user.email);state.selectedProjects=[];state.combineFeedback='Workstreams combined.';dialog.close();await load();}
   catch(error){fb.textContent='Not saved. '+error.message;btn.disabled=false;}
@@ -527,7 +526,7 @@ function briefing(b,d){
  // under the brand header - its own header row would duplicate the brand.
  const root=g=>g.p.id===b.project_id?0:1;
  const gs=[...projs.values()].sort((x,y)=>root(x)-root(y)||rank(x)-rank(y)||first(x).localeCompare(first(y))||x.p.name.localeCompare(y.p.name));
- return `<ul class="brief">${gs.map(g=>`<li class="brief-proj">${g.p.id===b.project_id?'':`<div class="daily-line"><b><button class="title-button" data-open="${esc(g.p.id)}">${esc(g.p.name)}</button></b>${commentButton(g.p,null)} <button class="comment daily-copy" data-copy-brand="${esc(b.key)}" data-copy-project="${esc(g.p.id)}">Copy text</button></div>`}${g.notes.map(n=>`<p class="brief-note">${esc(n.text)} <span class="daily-meta">${esc(stamp(n.at))}</span></p>`).join('')}<ul class="brief-steps">${g.steps.sort((x,y)=>(x.due||'9999').localeCompare(y.due||'9999')).map(x=>`<li><button class="title-button" data-open="${esc(x.project.id)}" data-target-item="${esc(x.item.id)}">${esc(x.item.title)}</button> - ${inlineOwner(x.item,d)} - <span class="brief-tag brief-${x.cat}">${esc(x.cat==='urgent'?x.why:x.cat==='active'?'In progress':'Due')}</span>${x.due?' '+esc(fmtDate(x.due)):''}</li>`).join('')}${g.done.map(x=>`<li><button class="title-button" data-open="${esc(x.project.id)}" data-target-item="${esc(x.item.id)}">${esc(x.item.title)}</button> - ${inlineOwner(x.item,d)} - <span class="brief-tag brief-done">Done</span> ${esc(stamp(x.at))}</li>`).join('')}${g.rdone.length?`<li class="brief-done-subhead">Done (last 5 working days)</li>`+g.rdone.map(x=>`<li class="brief-rdone"><button class="title-button" data-open="${esc(x.project.id)}" data-target-item="${esc(x.item.id)}">${esc(x.item.title)}</button> - ${inlineOwner(x.item,d)} - <span class="brief-tag brief-done">Done</span> ${esc(fmtDate(dayKey(new Date(x.at).getTime())))}</li>`).join(''):''}</ul></li>`).join('')}</ul>`;
+ return `<ul class="brief">${gs.map(g=>`<li class="brief-proj">${g.p.id===b.project_id?'':`<div class="daily-line"><b><button class="title-button" data-open="${esc(g.p.id)}">${esc(g.p.name)}</button></b>${commentButton(g.p,null)} <button class="comment daily-copy" data-copy-brand="${esc(b.key)}" data-copy-project="${esc(g.p.id)}">Copy text</button></div>`}${g.notes.map(n=>`<p class="brief-note">${esc(n.text)} <span class="daily-meta">${esc(stamp(n.at))}</span></p>`).join('')}<ul class="brief-steps">${g.steps.sort((x,y)=>(x.due||'9999').localeCompare(y.due||'9999')).map(x=>`<li>${stepCheckbox(x.item)}<button class="title-button" data-open="${esc(x.project.id)}" data-target-item="${esc(x.item.id)}">${esc(x.item.title)}</button> - ${inlineOwner(x.item,d)} - <span class="brief-tag brief-${x.cat}">${esc(x.cat==='urgent'?x.why:x.cat==='active'?'In progress':'Due')}</span>${x.due?' '+esc(fmtDate(x.due)):''}</li>`).join('')}${g.done.map(x=>`<li>${stepCheckbox(x.item)}<button class="title-button" data-open="${esc(x.project.id)}" data-target-item="${esc(x.item.id)}">${esc(x.item.title)}</button> - ${inlineOwner(x.item,d)} - <span class="brief-tag brief-done">Done</span> ${esc(stamp(x.at))}</li>`).join('')}${g.rdone.length?`<li class="brief-done-subhead">Done (last 5 working days)</li>`+g.rdone.map(x=>`<li class="brief-rdone">${stepCheckbox(x.item)}<button class="title-button" data-open="${esc(x.project.id)}" data-target-item="${esc(x.item.id)}">${esc(x.item.title)}</button> - ${inlineOwner(x.item,d)} - <span class="brief-tag brief-done">Done</span> ${esc(fmtDate(dayKey(new Date(x.at).getTime())))}</li>`).join(''):''}</ul></li>`).join('')}</ul>`;
 }
 function currentDaily(d){
  const memoKey=[state.data,today(),Math.floor(Date.now()/60000)];
@@ -536,7 +535,7 @@ function currentDaily(d){
 let dailyHtmlMemo=null;
 function dailyStatusView(d){
  if(isFreelancer(state.access))return '';
- const r=currentDaily(d),memoKey=[r,state.dailyOpen,state.dailyFocus||''];
+ const r=currentDaily(d),memoKey=[r,state.dailyOpen,state.dailyFocus||'',Object.keys(state.addCo).sort().join(',')];
  if(dailyHtmlMemo&&dailyHtmlMemo.key.every((v,i)=>v===memoKey[i]))return dailyHtmlMemo.value;
  const html=buildDailyStatusView(d,r);
  dailyHtmlMemo={key:memoKey,value:html};

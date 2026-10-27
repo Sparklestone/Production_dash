@@ -53,10 +53,29 @@ test('failure surfaces the server message and writes nothing further',async()=>{
  // server side (supabase/005-bulk-actions.sql) runs in one transaction: any raised error rolls the whole move back - no partial writes possible
 });
 
-test('empty or single-step source is detectable before any RPC call',()=>{
+test('empty source stays unavailable before any RPC call',()=>{
  const few={a:{id:'a',name:'Alpha'},b:{id:'b',name:'Beta'}};
  const empty=combinePlan(['a','b'],'a',few,[{id:'a1',project_id:'a',status:'pending'},{id:'a2',project_id:'a',status:'pending'}]);
  assert.equal(empty.items.length,0); // handler shows "no steps to move", no RPC
- const one=combinePlan(['a','b'],'a',few,[{id:'b1',project_id:'b',status:'pending'},{id:'a1',project_id:'a',status:'pending'}]);
- assert.equal(one.items.length,1); // handler blocks: RPC requires 2-100 steps (005-bulk-actions.sql cardinality check)
+});
+
+test('single-step source combines (server migration 013 allows 1-100 with explicit target)',async()=>{
+ const few={a:{id:'a',name:'Alpha'},b:{id:'b',name:'Beta'}};
+ const one=combinePlan(['a','b'],'a',few,[{id:'b1',project_id:'b',status:'pending',due_date:'2026-10-30'},{id:'a1',project_id:'a',status:'pending'}]);
+ assert.equal(one.items.length,1);
+ const calls=[];const res=await executeCombine(stub(calls),one,'Aaron Finkelstein');
+ assert.equal(calls.length,1);
+ assert.deepEqual(calls[0].args.payload.items.map(i=>i.id),['b1']);
+ assert.equal(calls[0].args.payload.target_id,'a');
+ assert.equal(res.target_id,'a');
+});
+
+test('over-100-step source stops with a clear message before any RPC call',async()=>{
+ const few={a:{id:'a',name:'Alpha'},b:{id:'b',name:'Beta'}};
+ const many=Array.from({length:101},(_,i)=>({id:'b'+i,project_id:'b',status:'pending'}));
+ const plan=combinePlan(['a','b'],'a',few,many);
+ assert.equal(plan.items.length,101);
+ const calls=[];
+ await assert.rejects(executeCombine(stub(calls),plan,'A'),/at most 100 steps at once/);
+ assert.equal(calls.length,0); // never reaches the server - no silent partial move
 });
