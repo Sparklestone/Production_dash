@@ -8,3 +8,10 @@ export function personDraft(values){
 export async function addPerson(client,values){const p=personDraft(values);const {data,error}=await client.rpc('add_dashboard_person',{person:p});if(error||!data?.id||data.name!==p.name)throw Error(error?.message||'Person not confirmed');return data;}
 
 export async function renameRoster(client,kind,target,expected,name){name=name.trim();if(!['person','team'].includes(kind)||!target||!name||name.length>(kind==='team'?60:120))throw Error('Enter a valid name');const {data,error}=await client.rpc('rename_dashboard_roster',{kind,target,expected,new_name:name});if(error||data?.name!==name||!data?.ok)throw Error(error?.message||'Rename not confirmed');return data;}
+export function rosterMembers(members){return {active:members.filter(m=>m.active!==false),all:members};}
+export function availableTeams(teams,removed=[]){return teams.filter(t=>!removed.includes(t));}
+export async function removeRoster(client,{kind,target,expected,confirmation,password}){
+ if(!['person','team'].includes(kind)||!target||confirmation!=='REMOVE'||!password)throw Error('Choose an entry, type REMOVE and enter your password');
+ const {data,error}=await client.rpc('remove_dashboard_roster',{kind,target,expected,confirmation,password});
+ if(error||!data?.ok||data.kind!==kind||data.target!==target)throw Error(error?.message||'Removal not confirmed');return data;
+}
