@@ -69,12 +69,16 @@ export function dailyStatus({items,updates=[],projects,clients=[],today,now=new 
 const OUTLINE_MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const outlineDate=d=>{if(!d)return '';const[,m,day]=d.split('-');return `${OUTLINE_MONTHS[+m-1]} ${+day}`;};
 const outlineEsc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-const outlineProjects=(b)=>{
+export const dailyProjectGroups=(b,focus="")=>{
+ const keep=k=>!focus||focus===k;
  const projs=new Map();
  const get=p=>projs.get(p.id)||(projs.set(p.id,{p,notes:[],done:[],steps:[],rdone:[]}),projs.get(p.id));
- for(const x of b.changed){const g=get(x.project);(x.kind==='note'?g.notes:g.done).push(x);}
+ for(const x of b.changed)if(keep('changed')){const g=get(x.project);(x.kind==='note'?g.notes:g.done).push(x);}
  for(const x of b.rdone||[])get(x.project).rdone.push(x);
- for(const [k,rows] of [['urgent',b.urgent],['next',b.next],['week',b.week],['active',b.active||[]]])for(const x of rows)get(x.project).steps.push({...x,cat:k});
+ for(const [k,rows] of [['urgent',b.urgent],['next',b.next],['week',b.week],['active',b.active||[]]])if(keep(k))for(const x of rows)get(x.project).steps.push({...x,cat:k});
+ // Recent completions are already in the Done section. Keep the Changed
+ // count/filter, but render each completed step only once.
+ for(const g of projs.values()){const ids=new Set(g.rdone.map(x=>x.item.id));g.done=g.done.filter(x=>!ids.has(x.item.id));}
  const rank=g=>g.steps.some(s=>s.cat==='urgent')?0:1,first=g=>g.steps.map(s=>s.due||'9999').sort()[0]||'9999';
  // The brand's root project (direct steps) lists first, matching the panel.
  const root=g=>g.p.id===b.project_id?0:1;
@@ -82,7 +86,7 @@ const outlineProjects=(b)=>{
 };
 const outlineModel=(b,{projects,mm,projectId}={})=>{
  const owner=i=>ownerNames(i,mm||{},'No owner');
- let gs=outlineProjects(b);
+ let gs=dailyProjectGroups(b);
  if(projectId)gs=gs.filter(g=>g.p.id===projectId);
  if(!gs.length)return null;
  const cx=projectCx(projects?.[projectId||b.project_id],projects||{});

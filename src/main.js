@@ -11,7 +11,7 @@ import {projectPath,displayProjectPath,workstreamLabel,flatProjectBranches,brand
 import {stepStatusOptions,statusChoice,saveStepStatus} from './step-status.js';
 import {statusLabel} from './status-labels.js';
 import {unresolvedPastDue} from './past-due.js';
-import {dailyStatus,statusOutline,brandOutline,statusOutlineHtml,brandOutlineHtml,dayKey} from './daily-status.js';
+import {dailyStatus,dailyProjectGroups,statusOutline,brandOutline,statusOutlineHtml,brandOutlineHtml,dayKey} from './daily-status.js';
 import {ownerNames,saveStepCoOwners,saveProjectCx,projectCx} from './step-assignment.js';
 import {visibleCards} from './hide-done.js';
 import {pendingRevisions,revisionTargets} from './revisions.js';
@@ -588,18 +588,7 @@ function myWorkCalendar(d,items){
 let dailyMemo=null;
 const DAILY_COLS=[['urgent','urgent','Urgent (whole team, all brands): steps that are past due, due today, or blocked / waiting on others. My work > Needs attention is only your own steps, so its count is smaller. Click to show only these.'],['changed','changed','Changed in the last 24 business hours: steps finished plus plain-words [Daily] notes (date moves, delays, deliveries, decisions). Click to list them.'],['active','in progress','Open steps that are started (in progress) but not past due, due soon, or blocked. Started work always shows here so it never drops off the status. Click to show only these.'],['next','next few days','Open steps due in the next 3 days that are not already urgent. Click to show only these.'],['week','later (7 days)','Open steps due from day 4 through the next 7 days that are not already urgent. Click to show only these.']];
 function briefing(b,d){
- const owner=i=>ownerNames(i,d.mm,"No owner");
- const keep=k=>!state.dailyFocus||state.dailyFocus===k;
- const projs=new Map();
- const get=p=>projs.get(p.id)||(projs.set(p.id,{p,notes:[],done:[],steps:[],rdone:[]}),projs.get(p.id));
- for(const x of b.changed)if(keep('changed')){const g=get(x.project);(x.kind==='note'?g.notes:g.done).push(x);}
- for(const x of b.rdone||[])get(x.project).rdone.push(x);
- for(const [k,rows] of [['urgent',b.urgent],['next',b.next],['week',b.week],['active',b.active||[]]])if(keep(k))for(const x of rows)get(x.project).steps.push({...x,cat:k});
- const rank=g=>g.steps.some(s=>s.cat==='urgent')?0:1,first=g=>g.steps.map(s=>s.due||'9999').sort()[0]||'9999';
- // The brand's root project (direct steps, no subproject) lists first, merged
- // under the brand header - its own header row would duplicate the brand.
- const root=g=>g.p.id===b.project_id?0:1;
- const gs=[...projs.values()].sort((x,y)=>root(x)-root(y)||rank(x)-rank(y)||first(x).localeCompare(first(y))||x.p.name.localeCompare(y.p.name));
+ const gs=dailyProjectGroups(b,state.dailyFocus||'');
  return `<ul class="brief">${gs.map(g=>`<li class="brief-proj">${g.p.id===b.project_id?'':`<div class="daily-line"><b><button class="title-button" data-open="${esc(g.p.id)}">${esc(g.p.name)}</button></b>${commentButton(g.p,null)} <button class="comment daily-copy" data-copy-brand="${esc(b.key)}" data-copy-project="${esc(g.p.id)}">Copy text</button></div>`}${g.notes.map(n=>`<p class="brief-note">${esc(n.text)} <span class="daily-meta">${esc(stamp(n.at))}</span></p>`).join('')}<ul class="brief-steps">${g.steps.sort((x,y)=>(x.due||'9999').localeCompare(y.due||'9999')).map(x=>`<li>${stepCheckbox(x.item)}<button class="title-button" data-open="${esc(x.project.id)}" data-target-item="${esc(x.item.id)}">${esc(x.item.title)}</button> - ${inlineOwner(x.item,d)} - <span class="brief-tag brief-${x.cat}">${esc(x.cat==='urgent'?x.why:x.cat==='active'?'In progress':'Due')}</span>${x.due?' '+esc(fmtDate(x.due)):''}</li>`).join('')}${g.done.map(x=>`<li>${stepCheckbox(x.item)}<button class="title-button" data-open="${esc(x.project.id)}" data-target-item="${esc(x.item.id)}">${esc(x.item.title)}</button> - ${inlineOwner(x.item,d)} - <span class="brief-tag brief-done">Done</span> ${esc(stamp(x.at))}</li>`).join('')}${g.rdone.length?`<li class="brief-done-subhead">Done (last 5 working days)</li>`+g.rdone.map(x=>`<li class="brief-rdone">${stepCheckbox(x.item)}<button class="title-button" data-open="${esc(x.project.id)}" data-target-item="${esc(x.item.id)}">${esc(x.item.title)}</button> - ${inlineOwner(x.item,d)} - <span class="brief-tag brief-done">Done</span> ${esc(fmtDate(dayKey(new Date(x.at).getTime())))}</li>`).join(''):''}</ul></li>`).join('')}</ul>`;
 }
 function currentDaily(d){
@@ -609,7 +598,7 @@ function currentDaily(d){
 let dailyHtmlMemo=null;
 function dailyStatusView(d){
  if(isFreelancer(state.access))return '';
- const r=currentDaily(d),memoKey=[r,state.dailyOpen,state.dailyFocus||'',Object.keys(state.addCo).sort().join(',')];
+ const r=currentDaily(d),memoKey=[r,state.dailyOpen,state.dailyFocus||'',Object.keys(state.addCo).sort().join(','),state.selectedSteps.join(',')];
  if(dailyHtmlMemo&&dailyHtmlMemo.key.every((v,i)=>v===memoKey[i]))return dailyHtmlMemo.value;
  const html=buildDailyStatusView(d,r);
  dailyHtmlMemo={key:memoKey,value:html};
@@ -952,7 +941,7 @@ function bind(root){
 function render(){
  quickSequence=0;const d=derive(), newest=state.data.updates[0]?.created_at;
  app.innerHTML=`<header class="site-header"><a class="brand brand-compact" href="#" id="home"><span class="brand-mark" aria-hidden="true">P</span><span>Monigle Production Team Workspace</span></a><div class="sync"><span class="live-dot"></span>${state.error?'Refresh failed. Showing last loaded data.':`Loaded ${state.loaded.toLocaleTimeString('en-US',{timeZone:TZ,hour:'numeric',minute:'2-digit'})} MT`}<button id="refresh" aria-label="Refresh data">↻</button><button id="signout">Sign out</button></div></header>
- <nav aria-label="Dashboard views">${[['today','My work'],...(!isFreelancer(state.access)?[['workload','Workload']]:[]),['projects','Clients'],['schedule','Schedule'],['recap','Recap']].map(([v,t])=>`<button data-view="${v}" ${state.view===v?'aria-current="page"':''}>${t}</button>`).join('')}${dashboardLegend()}</nav><main>${dailyStatusView(d)}<div id="revisions-area">${revisionsView()}</div>${bulkToolbar()}<div id="comment-outbox-area">${outboxView()}</div>${state.view==='today'?todayView(d):state.view==='projects'?projectsView(d):state.view==='workload'&&!isFreelancer(state.access)?workloadView(d):state.view==='recap'?recapView(d):scheduleView(d)}</main><div class="footnote">Latest feed entry: ${newest?esc(stamp(newest))+' MT':'none recorded'}. Loading this page does not mean every client was checked.<br>Missing a change? Use Update on any client or schedule item.</div><dialog id="bulk-dialog" aria-label="Bulk step actions"></dialog><dialog id="create-dialog" aria-label="Create or rename"></dialog><dialog id="combine-dialog" aria-label="Combine projects"></dialog><dialog id="detail" aria-labelledby="dialog-title"></dialog><dialog id="comment-dialog" aria-labelledby="comment-title"></dialog><dialog id="day-dialog" aria-labelledby="day-title"></dialog>`;
+ <nav aria-label="Dashboard views">${[['today','My work'],...(!isFreelancer(state.access)?[['workload','Workload']]:[]),['projects','Clients'],['schedule','Schedule'],['recap','Recap']].map(([v,t])=>`<button data-view="${v}" ${state.view===v?'aria-current="page"':''}>${t}</button>`).join('')}${dashboardLegend()}</nav><main>${bulkToolbar()}${dailyStatusView(d)}<div id="revisions-area">${revisionsView()}</div><div id="comment-outbox-area">${outboxView()}</div>${state.view==='today'?todayView(d):state.view==='projects'?projectsView(d):state.view==='workload'&&!isFreelancer(state.access)?workloadView(d):state.view==='recap'?recapView(d):scheduleView(d)}</main><div class="footnote">Latest feed entry: ${newest?esc(stamp(newest))+' MT':'none recorded'}. Loading this page does not mean every client was checked.<br>Missing a change? Use Update on any client or schedule item.</div><dialog id="bulk-dialog" aria-label="Bulk step actions"></dialog><dialog id="create-dialog" aria-label="Create or rename"></dialog><dialog id="combine-dialog" aria-label="Combine projects"></dialog><dialog id="detail" aria-labelledby="dialog-title"></dialog><dialog id="comment-dialog" aria-labelledby="comment-title"></dialog><dialog id="day-dialog" aria-labelledby="day-title"></dialog>`;
  bind(app);updateRevisionUI();updateSelectionUI();applyTimingWarnings();document.querySelector('#signout').onclick=()=>supabase.auth.signOut();document.querySelector('#refresh').onclick=load;document.querySelector('#home').onclick=e=>{e.preventDefault();state.view='today';render();};
  for(const [id,key] of [['member','member'],['client','client'],['status','status']])document.getElementById(id)?.addEventListener('change',e=>{state[key]=e.target.value;render();document.getElementById(id).focus();});
  document.getElementById('search')?.addEventListener('input',e=>{const pos=e.target.selectionStart;state.search=e.target.value;render();const el=document.getElementById('search');el.focus();el.setSelectionRange(pos,pos);});

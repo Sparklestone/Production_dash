@@ -43,7 +43,7 @@ test('statusOutline renders brand/CX head, notes, owner and date tags',()=>{
  assert.ok(lines.indexOf('files moved')<lines.indexOf('Print - No owner - Due Oct 23'),'root project content before subprojects');
  assert.ok(lines.includes('Kickoff deck - Aaron F. - Past due Oct 17'),'past due line: '+text);
  assert.ok(lines.includes('Build - Aaron F. & Pat M. - Blocked'),'blocked co-owner line: '+text);
- assert.ok(lines.includes('Old step - Pat M. - Done'),'done line: '+text);
+ assert.ok(lines.includes('Old step - Pat M. - Done Oct 19'),'done line: '+text);
  assert.ok(lines.includes('Print - No owner - Due Oct 23'),'due line: '+text);
  const acme=r.brands.find(b=>b.name==='Acme');
  assert.equal(brandOutline(acme,{projects,mm}).split('\n')[0],'Acme: CX Riley');
@@ -139,4 +139,14 @@ test('started work never drops off: in-progress steps always show (no edit-age l
  const text=brandOutline(acme,{projects,mm:{}});
  assert.ok(text.includes('Receive brand kit - No owner - In progress'),text);
  assert.ok(!text.includes('Backlog idea'),text);
+});
+
+import {dailyProjectGroups} from '../src/daily-status.js';
+test('recent completion renders once below Done divider in screen and copied status',()=>{
+ const item={id:'recent',project_id:'p',title:'Recent completion',status:'done',updated_at:'2026-10-19T14:00:00Z'};
+ const r=dailyStatus({items:[item],projects,clients,today:'2026-10-19',now});
+ const b=r.brands[0];
+ assert.equal(b.changed.length,1,'completion still contributes to Changed');
+ for(const focus of ['', 'changed']){const [g]=dailyProjectGroups(b,focus);assert.equal(g.done.length,0);assert.equal(g.rdone.length,1);}
+ for(const text of [statusOutline(r,{projects}),statusOutlineHtml(r,{projects})])assert.equal(text.split('Recent completion').length-1,1);
 });
