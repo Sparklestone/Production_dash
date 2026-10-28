@@ -1,10 +1,10 @@
 export function teamDefaults(user,scope,fallback){
  const saved=user?.user_metadata?.dashboard_team_defaults?.[scope];
- if(saved===null&&scope==='clients')return null;
+ if(saved===null&&['clients','schedule'].includes(scope))return null;
  return Array.isArray(saved)&&saved.every(t=>typeof t==='string'&&t.length<=60)?[...saved]:fallback===null?null:[...fallback];
 }
 export async function saveTeamDefault(auth,user,scope,teams){
- if(!user?.id||!['clients','workload'].includes(scope)||!(teams===null&&scope==='clients')&&(!Array.isArray(teams)||teams.some(t=>typeof t!=='string'||t.length>60)))throw Error('Invalid default');
+ if(!user?.id||!['clients','workload','schedule'].includes(scope)||!(teams===null&&['clients','schedule'].includes(scope))&&(!Array.isArray(teams)||teams.some(t=>typeof t!=='string'||t.length>60)))throw Error('Invalid default');
  const value={...(user.user_metadata?.dashboard_team_defaults||{}),[scope]:teams};
  const {data,error}=await auth.updateUser({data:{dashboard_team_defaults:value}});
  if(error||data?.user?.id!==user.id||JSON.stringify(data.user.user_metadata?.dashboard_team_defaults?.[scope])!==JSON.stringify(teams))throw Error('Default not confirmed');

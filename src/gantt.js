@@ -80,7 +80,7 @@ export function ganttChart(axis,groups,ctx){
     const {left,right}=ganttPosition(axis,r.date,r.last_date||r.date);
     if(right<=left){if(r.date<=axis.end&&(r.last_date||r.date)>=axis.start)weekendHidden++;continue;}
     const before=r.date<axis.start,after=(r.last_date||r.date)>axis.end;
-    rows.push(`<div class="gantt-row"><div class="gantt-rail"><strong>${esc(r.title)}</strong><small>${esc(rowMeta(r))}</small>${ctx.rowOwner?ctx.rowOwner(r):''}</div><div class="gantt-track"><button type="button" class="gantt-bar ${barClass(r)}" style="left:${pct(left)};width:${pct(Math.max(right-left,0.35))}" data-open="${esc(r.project_id)}" ${r.item_id?`data-target-item="${esc(r.item_id)}" data-calendar-item="${esc(r.item_id)}"`:''} title="${esc(barTitle(r))}">${esc((before?'← ':'')+chip(r)+(after?' →':''))}</button></div></div>`);
+    rows.push(`<div class="gantt-row"><div class="gantt-rail"><strong>${esc(r.title)}</strong>${ctx.rowDates&&r.item_id?ctx.rowDates(r):`<small>${esc(rowMeta(r))}</small>`}${ctx.rowOwner?ctx.rowOwner(r):''}</div><div class="gantt-track"><button type="button" class="gantt-bar ${barClass(r)}" style="left:${pct(left)};width:${pct(Math.max(right-left,0.35))}" data-open="${esc(r.project_id)}" ${r.item_id?`data-target-item="${esc(r.item_id)}" data-calendar-item="${esc(r.item_id)}"`:''} title="${esc(barTitle(r))}">${esc((before?'← ':'')+chip(r)+(after?' →':''))}</button></div></div>`);
    }
    if(rows.length){rowsHtml+=(sec.subhead?`<div class="gantt-subhead"><div class="gantt-rail">${sec.subhead}</div><div class="gantt-track"></div></div>`:'')+rows.join('');rowCount+=rows.length;}
   }

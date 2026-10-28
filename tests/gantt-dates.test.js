@@ -1,0 +1,4 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {ganttDates} from '../src/gantt-dates.js';
+const esc=s=>s,fmt=s=>s;
+test('Gantt dates use recorded start and due only and retain unknowns',()=>{const html=ganttDates({id:'x',title:'Step',due_date:'2026-11-09',work_days_needed:3},esc,fmt);assert.match(html,/name="start" type="date" value=""/);assert.match(html,/name="due" type="date" required value="2026-11-09"/);assert.match(html,/data-card-dates="x"/);assert.match(ganttDates({id:'x',title:'Step',start_date:'2026-11-04',due_date:'2026-11-09'},esc,fmt),/value="2026-11-04"/);});
+test('done and timed dates do not offer unsupported timing mutations',()=>{assert.doesNotMatch(ganttDates({status:'done'},esc,fmt),/<form/);assert.doesNotMatch(ganttDates({starts_at:'2026-11-03T20:35:00Z'},esc,fmt),/<form/);});
