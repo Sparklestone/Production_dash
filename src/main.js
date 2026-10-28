@@ -1,3 +1,4 @@
+import {projectClientPlan,assignProjectsToClient} from './project-client.js';
 import {defaultWorkloadTeams,memberTeam,workloadTeams,saveMemberTeam} from './workload-teams.js';
 import {workOverview,workloadSignal,ownerInitials} from './work-overview.js';
 import {saveStepOwner,saveProjectOwner} from './step-assignment.js';
@@ -325,7 +326,7 @@ function projectSelectControl(p){
 }
 function combineBar(){
  const n=state.selectedProjects.length;
- return `<aside id="combine-bar" class="bulk-toolbar" ${n<1?'hidden':''} aria-label="Selected project actions"><strong data-project-selection-count>${n} project${n===1?'':'s'} selected</strong><button data-combine-projects ${n!==2?'disabled':''}>Combine</button><button data-rename-project ${n!==1?'disabled':''}>Rename</button><button data-clear-project-selection>Clear selection</button><span role="status" id="combine-feedback">${esc(state.combineFeedback)}</span></aside>`;
+ return `<aside id="combine-bar" class="bulk-toolbar" ${n<1?'hidden':''} aria-label="Selected project actions"><strong data-project-selection-count>${n} project${n===1?'':'s'} selected</strong><button data-assign-client>Assign to client</button><button data-combine-projects ${n!==2?'disabled':''}>Combine</button><button data-rename-project ${n!==1?'disabled':''}>Rename</button><button data-clear-project-selection>Clear selection</button><span role="status" id="combine-feedback">${esc(state.combineFeedback)}</span></aside>`;
 }
 async function openCreate(kind){
  const d=derive(),dialog=document.querySelector('#create-dialog'),titles={client:'New client',project:'New project',step:'New step'};
@@ -381,6 +382,14 @@ function openProjectRename(){
   catch(error){if(session?.user?.id===uid){feedback.textContent='Not saved. '+error.message;e.target.querySelector('button[type=submit]').disabled=false;}}
  };
  dialog.showModal();
+}
+function openAssignClient(){
+ const ids=[...state.selectedProjects],dialog=document.querySelector('#combine-dialog'),d=derive();let items;
+ try{items=projectClientPlan(ids,state.data.projects);}catch(error){state.combineFeedback=error.message;updateSelectionUI();return;}
+ dialog.innerHTML=`<div class="dialog-head"><h2>Assign projects to client</h2><button data-close aria-label="Close assignment">×</button></div><p>${ids.length} selected project${ids.length===1?'':'s'}; ${items.length} project${items.length===1?'':'s'} affected including child projects. The hierarchy stays together. Steps, owners, dates, statuses and history stay unchanged.</p><ul class="bulk-review">${items.map(p=>`<li><strong>${esc(p.name)}</strong><small>${esc(clientName(d.cm[p.client_id])||'No client')}${p.parent_id?' · child project':''}</small></li>`).join('')}</ul><form id="assign-client-form"><label>Assign to client<select name="client" required><option value="">Choose a client</option>${state.data.clients.map(c=>`<option value="${esc(c.id)}">${esc(clientName(c))}</option>`).join('')}</select></label><p id="assign-client-review">Choose a client to review this assignment.</p><button type="submit" class="primary" disabled>Save assignment</button><p role="status" id="assign-client-status"></p></form>`;
+ bind(dialog);const form=dialog.querySelector('form'),sel=form.querySelector('select'),btn=form.querySelector('[type=submit]'),feedback=form.querySelector('[role=status]');
+ sel.onchange=()=>{const target=state.data.clients.find(c=>c.id===sel.value);btn.disabled=!target;dialog.querySelector('#assign-client-review').textContent=target?`Assign all ${items.length} listed projects to ${clientName(target)}. No other fields change.`:'Choose a client to review this assignment.';};
+ form.onsubmit=async e=>{e.preventDefault();if(!state.data.clients.some(c=>c.id===sel.value)){feedback.textContent='Choose a client.';return;}const uid=session?.user?.id;btn.disabled=true;sel.disabled=true;feedback.textContent='Saving...';try{await assignProjectsToClient(supabase,ids,items,sel.value);if(session?.user?.id!==uid)return;state.selectedProjects=[];state.combineFeedback='Client assigned.';dialog.close();await load();}catch(error){if(session?.user?.id===uid){feedback.textContent='Not saved. '+error.message;btn.disabled=false;sel.disabled=false;}}};dialog.showModal();
 }
 function openCombine(){
  const d=derive(),ids=state.selectedProjects;
@@ -921,7 +930,7 @@ function bind(root){
  root.querySelectorAll('[data-clear-selection]').forEach(b=>b.onclick=()=>{state.selectedSteps=[];updateSelectionUI();});
  root.querySelectorAll('[data-select-project]').forEach(el=>el.onchange=()=>{const id=el.dataset.selectProject;state.selectedProjects=el.checked?[...new Set([...state.selectedProjects,id])]:state.selectedProjects.filter(x=>x!==id);state.combineFeedback='';updateSelectionUI();});
  root.querySelectorAll('[data-clear-project-selection]').forEach(b=>b.onclick=()=>{state.selectedProjects=[];state.combineFeedback='';updateSelectionUI();});
- root.querySelectorAll('[data-combine-projects]').forEach(b=>b.onclick=openCombine);root.querySelectorAll('[data-rename-project]').forEach(b=>b.onclick=openProjectRename);root.querySelectorAll('[data-create]').forEach(b=>b.onclick=()=>openCreate(b.dataset.create));root.querySelectorAll('[data-client-aka]').forEach(b=>b.onclick=()=>openClientAka(b.dataset.clientAka));
+ root.querySelectorAll('[data-assign-client]').forEach(b=>b.onclick=openAssignClient);root.querySelectorAll('[data-combine-projects]').forEach(b=>b.onclick=openCombine);root.querySelectorAll('[data-rename-project]').forEach(b=>b.onclick=openProjectRename);root.querySelectorAll('[data-create]').forEach(b=>b.onclick=()=>openCreate(b.dataset.create));root.querySelectorAll('[data-client-aka]').forEach(b=>b.onclick=()=>openClientAka(b.dataset.clientAka));
  root.querySelectorAll('[data-complete-task]').forEach(b=>b.onclick=()=>completeTask(b.dataset.completeTask));
  root.querySelectorAll('[data-complete]').forEach(b=>b.onclick=()=>completeProject(b.dataset.complete));
  root.querySelectorAll('[data-schedule-mode]').forEach(b=>b.onclick=()=>{state.scheduleModes[b.dataset.scheduleKey||b.dataset.project]=b.dataset.scheduleMode;if(b.closest('dialog'))refreshDetail();else render();document.querySelector(`[data-project="${b.dataset.project}"][data-schedule-mode="${b.dataset.scheduleMode}"]`)?.focus();});
