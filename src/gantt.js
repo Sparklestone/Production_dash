@@ -65,21 +65,21 @@ export function ganttPosition(axis,start,end){
 }
 
 // Calendar focus uses today, never the navigated anchor. Two-month mode is
-// intentionally unchanged until its focus rule is specified.
+// focuses on the actual current calendar month.
 export function ganttCurrentPeriod(day,today,mode){
  if(mode==='week'||mode==='day'){const wd=new Date(today+'T12:00:00Z').getUTCDay(),start=addDays(today,-((wd+6)%7));return day>=start&&day<addDays(start,7);}
- if(mode==='month')return day.slice(0,7)===today.slice(0,7);
+ if(mode==='month'||mode==='2mo')return day.slice(0,7)===today.slice(0,7);
  if(mode==='quarter')return day.slice(0,4)===today.slice(0,4)&&Math.floor((Number(day.slice(5,7))-1)/3)===Math.floor((Number(today.slice(5,7))-1)/3);
  if(mode==='year')return day.slice(0,4)===today.slice(0,4);
  return true;
 }
-export function ganttMajorBoundaries(axis,mode){return axis.monthStarts.filter(i=>mode!=='year'||[1,4,7,10].includes(Number(axis.days[i].slice(5,7))));}
+export function ganttMajorBoundaries(axis,mode){return ['month','2mo'].includes(mode)?[]:axis.monthStarts.filter(i=>mode!=='year'||[1,4,7,10].includes(Number(axis.days[i].slice(5,7))));}
 
 // groups: [{sections:[{rows,subhead?}], head?: html, collapsed?: bool}]. ctx: {esc,mode,chip,barClass,barTitle,rowMeta,todayKey,scope,scheduleKey}
 export function ganttChart(axis,groups,ctx){
  const {esc,chip,barClass,barTitle,rowMeta,todayKey,mode}=ctx,total=axis.days.length,pct=n=>(n/total*100).toFixed(3)+'%';
  const majors=new Set(ganttMajorBoundaries(axis,mode));
- if(mode==='week'||mode==='month'||mode==='2mo')axis.days.forEach((k,i)=>{if(new Date(k+'T12:00:00Z').getUTCDay()===1)majors.add(i);});
+ if(mode==='week')axis.days.forEach((k,i)=>{if(new Date(k+'T12:00:00Z').getUTCDay()===1)majors.add(i);});
  const gridlines=axis.columns.map(c=>`<span style="left:${pct(c.offset)};width:${pct(c.span)}"${c.major&&majors.has(c.offset)?' class="major"':''}></span>`).join('')
   +[...majors].map(i=>`<span class="gantt-major-line" style="left:${pct(i)}"></span>`).join('');
  const muted=[];for(let i=0;i<total;){if(ganttCurrentPeriod(axis.days[i],todayKey,mode)){i++;continue;}let j=i+1;while(j<total&&!ganttCurrentPeriod(axis.days[j],todayKey,mode))j++;muted.push({offset:i,span:j-i});i=j;}
