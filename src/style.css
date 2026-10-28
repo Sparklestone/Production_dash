@@ -502,3 +502,5 @@ select.pill:disabled{cursor:default;opacity:.7}
 
 .daily-date-status{display:inline-flex;align-items:center;flex-wrap:wrap;gap:6px;vertical-align:middle;max-width:100%}.daily-date-menu{border:1px solid #ccc;background:white;border-radius:4px;padding:3px 7px;font-size:12px;min-height:28px;color:inherit;cursor:pointer}.daily-date-status .pill{max-width:155px;min-height:28px}.daily-completed-at{font-size:11px;color:var(--mut);margin-left:6px}
 .daily-date-menu.daily-date-urgent{color:#b3261e;font-weight:600}
+.daily-date-status{flex-wrap:nowrap;white-space:nowrap;width:max-content;max-width:100%}.daily-date-menu{flex:0 0 auto;white-space:nowrap}.daily-date-status>.pill,.daily-date-status>.bb-custom-select-container{flex:0 0 auto;width:auto;min-width:88px}.daily-date-status .step-status-feedback:empty{display:none}.brief-steps .daily-date-status{margin-top:2px;margin-bottom:2px}
+.pill.with_client{background:#e8e0f5;color:#633c88}

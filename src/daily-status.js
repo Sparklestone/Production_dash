@@ -57,7 +57,7 @@ export function dailyStatus({items,updates=[],projects,clients=[],today,now=new 
  const byDue=(a,b)=>(a.due||'9999').localeCompare(b.due||'9999')||a.item.title.localeCompare(b.item.title);
  const list=Object.values(brands).filter(b=>b.changed.length+b.urgent.length+b.next.length+b.week.length+b.active.length+b.rdone.length);
  for(const b of list){b.urgent.sort(byDue);b.next.sort(byDue);b.week.sort(byDue);b.active.sort(byDue);b.changed.sort((x,y)=>y.at.localeCompare(x.at));b.rdone.sort((x,y)=>y.at.localeCompare(x.at));}
- list.sort((a,b)=>b.urgent.length-a.urgent.length||a.name.localeCompare(b.name));
+ list.sort((a,b)=>a.name.localeCompare(b.name));
  return {brands:list,since:new Date(start),totals:list.reduce((t,b)=>({changed:t.changed+b.changed.length,urgent:t.urgent+b.urgent.length,next:t.next+b.next.length,week:t.week+b.week.length,active:t.active+b.active.length,rdone:t.rdone+b.rdone.length}),{changed:0,urgent:0,next:0,week:0,active:0,rdone:0})};
 }
 

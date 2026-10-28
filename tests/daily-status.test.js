@@ -150,3 +150,5 @@ test('recent completion renders once below Done divider in screen and copied sta
  for(const focus of ['', 'changed']){const [g]=dailyProjectGroups(b,focus);assert.equal(g.done.length,0);assert.equal(g.rdone.length,1);}
  for(const text of [statusOutline(r,{projects}),statusOutlineHtml(r,{projects})])assert.equal(text.split('Recent completion').length-1,1);
 });
+
+test('clients sorted alphabetically regardless of urgent count',()=>{const r=dailyStatus({projects,clients,items:[{id:'a',project_id:'p',title:'later',status:'pending',due_date:'2026-10-21'},{id:'z',project_id:'q',title:'urgent',status:'blocked'}],today:'2026-10-19',now});assert.deepEqual(r.brands.map(b=>b.name),['Acme','Zed']);});
