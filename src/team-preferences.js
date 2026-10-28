@@ -12,6 +12,7 @@ export async function saveTeamDefault(auth,user,scope,teams){
 }
 export async function addWorkloadTeam(client,name){
  name=name.trim();if(!name||name.length>60||name==='No team set')throw Error('Use a team name of 1-60 characters');
- const {data,error}=await client.from('workload_teams').upsert({name},{onConflict:'name'}).select('name').single();
+ const {data,error}=await client.from('workload_teams').upsert({name},{onConflict:'name'}).select('name,removed_at').single();
+ if(data?.removed_at)throw Error('This team was permanently removed. Choose a different name');
  if(error||data?.name!==name)throw Error('Team not confirmed');return data.name;
 }
