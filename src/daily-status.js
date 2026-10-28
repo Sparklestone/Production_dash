@@ -99,7 +99,7 @@ const outlineModel=(b,{projects,mm,projectId}={})=>{
    lines.push(`${x.item.title} - ${owner(x.item)} - ${x.cat==='urgent'?x.why:x.cat==='active'?'In progress':'Due'}${x.due?' '+outlineDate(x.due):''}`);
   for(const x of g.done)lines.push(`${x.item.title} - ${owner(x.item)} - Done`);
   if(g.rdone?.length){lines.push('Done (last 5 working days):');for(const x of g.rdone)lines.push(`${x.item.title} - ${owner(x.item)} - Done ${outlineDate(dayKey(new Date(x.at).getTime()))}`);}
-  return {name:g.p.name,id:g.p.id,merged:!projectId&&g.p.id===b.project_id,lines};
+  return {name:g.p.name,id:g.p.id,merged:!projectId&&g.p.name.trim().toLowerCase()===b.name.trim().toLowerCase(),lines};
  });
  return {head,headId:(projectId?gs[0].p.id:b.project_id)||null,groups,projectScoped:!!projectId};
 };

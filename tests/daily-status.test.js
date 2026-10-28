@@ -38,13 +38,13 @@ test('statusOutline renders brand/CX head, notes, owner and date tags',()=>{
  const text=statusOutline(r,{projects,mm});
  const lines=text.split('\n');
  assert.ok(lines.includes('Acme: CX Riley'),'head: '+lines[0]);
- assert.ok(!lines.includes('Logo'),'root project header merged into brand head: '+lines.join('|'));
- assert.ok(lines.indexOf('files moved')===lines.indexOf('Acme: CX Riley')+2,'note straight under brand head: '+lines.join('|'));
- assert.ok(lines.indexOf('files moved')<lines.indexOf('Print - No owner - Due Oct 23'),'root project content before subprojects');
- assert.ok(lines.includes('Kickoff deck - Aaron F. - Past due Oct 17'),'past due line: '+text);
- assert.ok(lines.includes('Build - Aaron F. & Pat M. - Blocked'),'blocked co-owner line: '+text);
- assert.ok(lines.includes('Old step - Pat M. - Done Oct 19'),'done line: '+text);
- assert.ok(lines.includes('Print - No owner - Due Oct 23'),'due line: '+text);
+ assert.ok(lines.includes('  Logo'),'distinct root project name visible: '+lines.join('|'));
+ assert.ok(lines.includes('  files moved'),'note under named project: '+lines.join('|'));
+ assert.ok(lines.indexOf('  files moved')<lines.indexOf('  Print - No owner - Due Oct 23'),'root project content before subprojects');
+ assert.ok(lines.includes('  Kickoff deck - Aaron F. - Past due Oct 17'),'past due line: '+text);
+ assert.ok(lines.includes('  Build - Aaron F. & Pat M. - Blocked'),'blocked co-owner line: '+text);
+ assert.ok(lines.includes('  Old step - Pat M. - Done Oct 19'),'done line: '+text);
+ assert.ok(lines.includes('  Print - No owner - Due Oct 23'),'due line: '+text);
  const acme=r.brands.find(b=>b.name==='Acme');
  assert.equal(brandOutline(acme,{projects,mm}).split('\n')[0],'Acme: CX Riley');
  const proj=brandOutline(acme,{projects,mm,projectId:'p'});
@@ -63,9 +63,9 @@ test('outline spacing and HTML hierarchy for Teams paste',()=>{
  const r=ds2({items,updates:[],projects,clients,today:'2026-10-19',now});
  const text=statusOutline(r,{projects,mm});
  assert.ok(text.includes('\n\n\n'),'triple break between brands: '+JSON.stringify(text.slice(0,200)));
- assert.ok(text.includes('Acme: CX Riley\n\nKickoff & deck - Aaron F. - Past due Oct 17\n'),'root project content merged under brand head: '+JSON.stringify(text.slice(0,200)));
+ assert.ok(text.includes('Acme: CX Riley\n\n  Logo\n  Kickoff & deck - Aaron F. - Past due Oct 17'),'distinct project visible under brand: '+text);
  const html=statusOutlineHtml(r,{projects,mm});
- assert.ok(html.includes('<h2 style="margin:0"><a href="https://productiondash.vercel.app/#project=p">Acme: CX Riley</a></h2><p style="margin:0">Kickoff &amp; deck - Aaron F. - Past due Oct 17</p>'),'root project folds under h2 brand head: '+html.slice(0,300));
+ assert.ok(html.includes('>Logo</a></h3>'),'distinct project heading visible: '+html);
  assert.ok(!html.includes('<b>Logo</b><br>'),'no duplicate root project head: '+html.slice(0,300));
  assert.ok(html.includes('<p><br></p>'),'empty paragraph between brands');
  const projHtml=brandOutlineHtml(r.brands.find(b=>b.name==='Acme'),{projects,mm,projectId:'p'});
@@ -110,13 +110,13 @@ test('Done subsection lists steps completed in the last 5 working days',()=>{
  assert.deepEqual(acme.rdone.map(x=>x.item.id),['1','2','3'],'in-window done only, newest first: '+JSON.stringify(acme.rdone.map(x=>x.item.id)));
  const text=statusOutline(r,{projects,mm});
  const lines=text.split('\n');
- const head=lines.indexOf('Done (last 5 working days):');
+ const head=lines.indexOf('  Done (last 5 working days):');
  assert.ok(head>-1,'Done subsection present: '+text);
- assert.ok(lines.includes('Recent fix - Pat M. - Done Oct 20'),'owner + done date: '+text);
- assert.ok(lines.includes('Edge fix - No owner - Done Oct 15'),'window edge included: '+text);
+ assert.ok(lines.includes('  Recent fix - Pat M. - Done Oct 20'),'owner + done date: '+text);
+ assert.ok(lines.includes('  Edge fix - No owner - Done Oct 15'),'window edge included: '+text);
  assert.ok(!text.includes('Too old'),'older than 5 working days excluded');
  assert.ok(!text.includes('RETIRED'),'retired excluded');
- assert.ok(lines.indexOf('Recent fix - Pat M. - Done Oct 20')>head,'done lines under the subsection head');
+ assert.ok(lines.indexOf('  Recent fix - Pat M. - Done Oct 20')>head,'done lines under the subsection head');
  const proj=brandOutline(acme,{projects,mm,projectId:'p'});
  assert.ok(proj.includes('Done (last 5 working days):'),'project-scoped copy includes Done subsection');
  assert.ok(!proj.includes('Open step - No owner - Due Oct 22'),'project scoping still holds');
@@ -152,3 +152,11 @@ test('recent completion renders once below Done divider in screen and copied sta
 });
 
 test('clients sorted alphabetically regardless of urgent count',()=>{const r=dailyStatus({projects,clients,items:[{id:'a',project_id:'p',title:'later',status:'pending',due_date:'2026-10-21'},{id:'z',project_id:'q',title:'urgent',status:'blocked'}],today:'2026-10-19',now});assert.deepEqual(r.brands.map(b=>b.name),['Acme','Zed']);});
+
+ test('matching brand and root names avoid duplicate headings but distinct first project stays visible',()=>{
+  const projects={p:{id:'p',name:'Acme',client_id:'c'}};
+  const r=dailyStatus({items:[{id:'s',project_id:'p',title:'Build',status:'pending',due_date:'2026-10-22'}],projects,clients:[{id:'c',name:'Acme'}],today:'2026-10-21',now:new Date('2026-10-21T16:00:00Z')});
+  assert.equal(statusOutline(r,{projects,mm:{}}).split('Acme').length-1,1);
+  projects.p.name='Acme Engagement';
+  assert.ok(statusOutline(r,{projects,mm:{}}).includes('  Acme Engagement'));
+ });
