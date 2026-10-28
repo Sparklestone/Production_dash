@@ -64,13 +64,26 @@ export function ganttPosition(axis,start,end){
  return {left,right};
 }
 
+// Calendar focus uses today, never the navigated anchor. Two-month mode is
+// intentionally unchanged until its focus rule is specified.
+export function ganttCurrentPeriod(day,today,mode){
+ if(mode==='week'||mode==='day'){const wd=new Date(today+'T12:00:00Z').getUTCDay(),start=addDays(today,-((wd+6)%7));return day>=start&&day<addDays(start,7);}
+ if(mode==='month')return day.slice(0,7)===today.slice(0,7);
+ if(mode==='quarter')return day.slice(0,4)===today.slice(0,4)&&Math.floor((Number(day.slice(5,7))-1)/3)===Math.floor((Number(today.slice(5,7))-1)/3);
+ if(mode==='year')return day.slice(0,4)===today.slice(0,4);
+ return true;
+}
+export function ganttMajorBoundaries(axis,mode){return axis.monthStarts.filter(i=>mode!=='year'||[1,4,7,10].includes(Number(axis.days[i].slice(5,7))));}
+
 // groups: [{sections:[{rows,subhead?}], head?: html, collapsed?: bool}]. ctx: {esc,mode,chip,barClass,barTitle,rowMeta,todayKey,scope,scheduleKey}
 export function ganttChart(axis,groups,ctx){
  const {esc,chip,barClass,barTitle,rowMeta,todayKey,mode}=ctx,total=axis.days.length,pct=n=>(n/total*100).toFixed(3)+'%';
- const majors=new Set(axis.monthStarts);
+ const majors=new Set(ganttMajorBoundaries(axis,mode));
  if(mode==='week'||mode==='month'||mode==='2mo')axis.days.forEach((k,i)=>{if(new Date(k+'T12:00:00Z').getUTCDay()===1)majors.add(i);});
- const gridlines=axis.columns.map(c=>`<span style="left:${pct(c.offset)};width:${pct(c.span)}"${c.major?' class="major"':''}></span>`).join('')
+ const gridlines=axis.columns.map(c=>`<span style="left:${pct(c.offset)};width:${pct(c.span)}"${c.major&&majors.has(c.offset)?' class="major"':''}></span>`).join('')
   +[...majors].map(i=>`<span class="gantt-major-line" style="left:${pct(i)}"></span>`).join('');
+ const muted=[];for(let i=0;i<total;){if(ganttCurrentPeriod(axis.days[i],todayKey,mode)){i++;continue;}let j=i+1;while(j<total&&!ganttCurrentPeriod(axis.days[j],todayKey,mode))j++;muted.push({offset:i,span:j-i});i=j;}
+ const periodShade=muted.map(c=>`<span class="gantt-noncurrent" style="left:${pct(c.offset)};width:${pct(c.span)}"></span>`).join('');
  let weekendHidden=0;
  const sections=groups.map((g,gi)=>{
   let rowsHtml='',rowCount=0;
@@ -88,10 +101,10 @@ export function ganttChart(axis,groups,ctx){
   const inRange=todayKey>=axis.start&&todayKey<=axis.end,tpos=inRange?axis.days.findIndex(d=>d>=todayKey):-1;
   const marker=tpos>=0?`<div class="gantt-today${mode==='week'?' gantt-today-week':''}" style="left:${pct(tpos+0.5)}">${gi===0?'<span class="gantt-today-label">TODAY</span>':''}</div>`:'';
   const todayFill=(mode==='week'&&tpos>=0)?`<div class="gantt-today-fill" style="left:${pct(tpos)};width:${pct(1)}"></div>`:'';
-  return `<section class="gantt-group ${g.collapsed?'is-collapsed':''}">${g.head||''}${g.collapsed?'':`<div class="gantt-rows"><div class="gantt-lines" aria-hidden="true">${todayFill}<div class="gantt-gridlines">${gridlines}</div>${marker}</div>${rowsHtml}</div>`}</section>`;
+  return `<section class="gantt-group ${g.collapsed?'is-collapsed':''}">${g.head||''}${g.collapsed?'':`<div class="gantt-rows"><div class="gantt-lines" aria-hidden="true">${periodShade}${todayFill}<div class="gantt-gridlines">${gridlines}</div>${marker}</div>${rowsHtml}</div>`}</section>`;
  }).join('');
  const tIdx=(todayKey>=axis.start&&todayKey<=axis.end)?axis.days.findIndex(d=>d>=todayKey):-1,todayFrac=tIdx>=0?((tIdx+0.5)/total).toFixed(5):(axis.anchorIdx/total).toFixed(5);
  const perMin={week:700,month:950,'2mo':1150,quarter:900,year:1000}[mode]||800;
- const html=`<div class="gantt-scroll" data-gantt-scroll data-scope="${esc(ctx.scope||'live')}" data-schedule-key="${esc(ctx.scheduleKey||'')}" data-anchor-frac="${(axis.anchorIdx/total).toFixed(5)}" data-today-frac="${todayFrac}" data-period-frac="${(axis.periodLen/total).toFixed(5)}"><div class="gantt mode-${mode}" style="min-width:${perMin*(axis.bounds.length-1)}px" role="group" aria-label="Gantt schedule chart"><div class="gantt-header"><div class="gantt-rail" aria-hidden="true"></div><div class="gantt-cols">${axis.columns.map(c=>`<span class="gantt-col" style="left:${pct(c.offset)};width:${pct(c.span)}">${esc(c.label)}</span>`).join('')}</div></div>${sections||'<p class="empty" style="padding:14px">No dated items in this range.</p>'}</div></div>`;
+ const html=`<div class="gantt-scroll" data-gantt-scroll data-scope="${esc(ctx.scope||'live')}" data-schedule-key="${esc(ctx.scheduleKey||'')}" data-anchor-frac="${(axis.anchorIdx/total).toFixed(5)}" data-today-frac="${todayFrac}" data-period-frac="${(axis.periodLen/total).toFixed(5)}"><div class="gantt mode-${mode}" style="min-width:${perMin*(axis.bounds.length-1)}px" role="group" aria-label="Gantt schedule chart"><div class="gantt-header"><div class="gantt-rail" aria-hidden="true"></div><div class="gantt-cols">${axis.columns.map(c=>`<span class="gantt-col${ganttCurrentPeriod(axis.days[c.offset],todayKey,mode)?'':' gantt-col-noncurrent'}${mode==='year'&&majors.has(c.offset)?' gantt-col-quarter':''}" style="left:${pct(c.offset)};width:${pct(c.span)}">${esc(c.label)}</span>`).join('')}</div></div>${sections||'<p class="empty" style="padding:14px">No dated items in this range.</p>'}</div></div>`;
  return {html,weekendHidden};
 }
