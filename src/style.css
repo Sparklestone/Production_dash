@@ -523,3 +523,4 @@ select.pill:disabled{cursor:default;opacity:.7}
 .mode-year .gantt-bar{padding:3px 1px;text-align:center;font-size:10px;line-height:20px}
 /* Keep the daily grid legible on muted periods, without dimming task bars. */
 .gantt-noncurrent,.gantt-col-noncurrent{background:rgba(105,115,110,.075)}.gantt-gridlines span{border-left-color:#d4dbd5}.mode-year .gantt-gridlines>span:not(.major):not(.gantt-major-line){border-left-color:#d4dbd5}.mode-month .gantt-bar,.mode-2mo .gantt-bar{height:28px;min-height:28px;min-width:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:20px;padding:3px 4px}
+.roster-actions{display:flex;gap:8px;margin:10px 0}.team-manager form{display:flex;align-items:end;gap:8px;flex-wrap:wrap}#add-person-form{display:grid;gap:12px}#add-person-form label{display:grid;gap:4px}#add-person-form input,#add-person-form select{min-height:38px}
