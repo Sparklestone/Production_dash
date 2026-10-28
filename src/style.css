@@ -511,3 +511,6 @@ select.pill:disabled{cursor:default;opacity:.7}
 .page-step-group .workstream-heading .hierarchy-label,.page-step-group .workstream-heading .workstream-count{color:#d4d1d2}
 .page-step-group .workstream-heading .step-date{color:#e7e4e5}
 .page-step-group .workstream-heading .step-circle{background:#f6f7f3}
+.client-select{display:inline-flex;vertical-align:middle;margin:0 12px 0 0;font-size:11px;color:inherit;white-space:nowrap}.daily-line>.project-select{margin:2px 0 0;flex:0 0 auto}.daily-line>b{margin-right:auto}.daily-brand-head>.client-select{color:#241f20}.section-heading h2{display:flex;align-items:center;flex-wrap:wrap;gap:6px}#aka-form label{display:block;margin:14px 0}#aka-form button{margin:8px 8px 0 0}
+@media(max-width:650px){.daily-brand-head,.daily-line{flex-wrap:wrap}.daily-brand-head h3{min-width:0;max-width:100%;overflow-wrap:anywhere}.daily-line>b{flex:1 1 180px;min-width:0;overflow-wrap:anywhere}.daily-brand-head>.client-select{margin-right:0}.brief-steps .inline-owner{max-width:100%;flex-wrap:wrap}}
+@media(max-width:650px){.listing-nownext .no-dates-flag{white-space:normal;overflow-wrap:anywhere}.project-listing>summary .mini-timeline{min-width:0;overflow-x:auto}}
