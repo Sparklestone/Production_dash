@@ -1,0 +1,3 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';
+const src=readFileSync(new URL('../src/main.js',import.meta.url),'utf8');
+test('daily date action precedes status and uses reviewed timing flow',()=>{const fn=src.slice(src.indexOf('function dailyDateStatus'),src.indexOf('function briefing'));assert.ok(fn.indexOf('data-adjust-timing')<fn.lastIndexOf('stepStatusPill'));assert.match(fn,/canCompleteItem/);assert.match(fn,/projectIsDone/);assert.match(src,/data-adjust-timing.*openTiming/);assert.match(src,/Nothing changes until you save/);});

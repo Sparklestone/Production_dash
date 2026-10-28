@@ -499,3 +499,6 @@ select.pill:disabled{cursor:default;opacity:.7}
 .listing-nownext:has(.inline-owner){white-space:normal;overflow:visible;text-overflow:clip;max-width:none;flex:1 1 300px}
 .listing-nownext .inline-owner{max-width:100%;vertical-align:middle}
 @media(max-width:650px){.listing-nownext .inline-owner{display:flex;width:100%;margin-top:4px}.listing-nownext .inline-owner select{flex:1 1 0;min-width:0}}
+
+.daily-date-status{display:inline-flex;align-items:center;flex-wrap:wrap;gap:6px;vertical-align:middle;max-width:100%}.daily-date-menu{border:1px solid #ccc;background:white;border-radius:4px;padding:3px 7px;font-size:12px;min-height:28px;color:inherit;cursor:pointer}.daily-date-status .pill{max-width:155px;min-height:28px}.daily-completed-at{font-size:11px;color:var(--mut);margin-left:6px}
+.daily-date-menu.daily-date-urgent{color:#b3261e;font-weight:600}
