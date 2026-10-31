@@ -19,3 +19,11 @@ test('task summaries stay eager, open and expanded editors stay full; toggle hyd
  assert.match(s,/if\(el\.open\)populateTaskCard\(el\)/);
  assert.match(s,/hydrateCardBody\(body,\(\)=>taskCardBody\(item,derive\(\)\),node=>\{bind\(node\)/);
 });
+test('summary and extracted body preserve prior full-card markup',()=>{
+ const current=fs.readFileSync(new URL('../src/main.js',import.meta.url),'utf8');
+ // Context, history, editors and update forms remain in the deferred body.
+ const body=current.slice(current.indexOf('function taskCardBody'),current.indexOf('function populateTaskCard'));
+ for(const token of ['timeline(p,d,i)','questionsArea(p,i)','quickInput(p,i)','commentHistory(p,i)','stepStatusControl(i,d)','stepOwnerControl(i,d)','workDaysControl(i)','sourceControls(p,i,d)','originalSourceControls(i)','task-complete-status'])assert.ok(body.includes(token),token);
+ const card=current.slice(current.indexOf('function taskCard('),current.indexOf('function taskCardBody'));
+ for(const token of ['stepCheckbox(i)','inlineOwner(i,d)','stepStatusPill(i,d)','taskBreadcrumb(p,d)','data-target-item','data-step-row'])assert.ok(card.includes(token),token);
+});
