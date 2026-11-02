@@ -541,3 +541,8 @@ select.pill:disabled{cursor:default;opacity:.7}
  .daily-brand-head h3{flex-basis:100%}
  .daily-brief>.brief>.brief-proj{padding:12px 8px}
 }
+
+/* Keep the current client visible until the next client's section arrives.
+   Paint containment can clip a sticky descendant as its section scrolls. */
+.daily-brand{content-visibility:visible;contain-intrinsic-size:none}
+.daily-brand-head{position:sticky;top:0;z-index:10;box-shadow:0 2px 5px #0002}

@@ -11,3 +11,7 @@ test('Daily client bar includes the entire header and keeps readable controls',(
  assert.match(css,/\.daily-brand-head>\.comment\{background:#fff;color:#241f20;/);
  assert.match(css,/\.daily-brand-head h3\{flex-basis:100%\}/);
 });
+test('Daily client header sticks within its own section without paint containment',()=>{
+ assert.match(css,/\.daily-brand\{content-visibility:visible;contain-intrinsic-size:none\}/);
+ assert.match(css,/\.daily-brand-head\{position:sticky;top:0;z-index:10;/);
+});
