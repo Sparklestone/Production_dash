@@ -14,7 +14,7 @@ export function businessWindowStart(now,hours=24,zone='America/Denver'){
  return new Date(ms);
 }
 // Denver calendar-day key for a timestamp, and the earliest day of the
-// trailing N-working-day window (weekends skipped), counting today.
+// trailing N-working-day edit window (weekends skipped), counting today.
 const dayFmts={};
 export const dayKey=(ms,zone='America/Denver')=>(dayFmts[zone]||=new Intl.DateTimeFormat('en-CA',{timeZone:zone,year:'numeric',month:'2-digit',day:'2-digit'})).format(ms);
 export function doneWindowStart(today,days=5,zone='America/Denver'){
@@ -36,8 +36,8 @@ export function dailyStatus({items,updates=[],projects,clients=[],today,now=new 
   const p=projects[i.project_id];if(!p)continue;
   const b=brand(p),when=i.updated_at?new Date(i.updated_at).getTime():0;
   const added=i.created_at&&new Date(i.created_at).getTime()>=start;
-  if(i.status==='done'&&when>=start&&when<=now.getTime()&&!added&&!/^RETIRED/i.test(i.title))b.changed.push({kind:'done',item:i,project:p,at:i.updated_at,text:'Done'});
-  if(i.status==='done'&&i.updated_at&&!/^RETIRED/i.test(i.title)&&dayKey(when)>=doneStart)b.rdone.push({item:i,project:p,at:i.updated_at});
+  if(i.status==='done'&&when>=start&&when<=now.getTime()&&!added&&!/^RETIRED/i.test(i.title))b.changed.push({kind:'done',item:i,project:p,at:i.updated_at,text:'Updated while Done'});
+  if(i.status==='done'&&i.updated_at&&!/^RETIRED/i.test(i.title)&&when<=now.getTime()&&dayKey(when)>=doneStart)b.rdone.push({item:i,project:p,at:i.updated_at});
   if(i.status==='done'||projectIsDone(p,projects))continue;
   const due=dateKey(i.due_date);
   const mark=x=>{seen.add(i.id);return x;};
@@ -76,8 +76,8 @@ export const dailyProjectGroups=(b,focus="")=>{
  for(const x of b.changed)if(keep('changed')){const g=get(x.project);(x.kind==='note'?g.notes:g.done).push(x);}
  for(const x of b.rdone||[])get(x.project).rdone.push(x);
  for(const [k,rows] of [['urgent',b.urgent],['next',b.next],['week',b.week],['active',b.active||[]]])if(keep(k))for(const x of rows)get(x.project).steps.push({...x,cat:k});
- // Recent completions are already in the Done section. Keep the Changed
- // count/filter, but render each completed step only once.
+ // Done steps with recent edits are already in their own section. These are
+ // edit times, never proof of completion timing. Render each step only once.
  for(const g of projs.values()){const ids=new Set(g.rdone.map(x=>x.item.id));g.done=g.done.filter(x=>!ids.has(x.item.id));}
  const rank=g=>g.steps.some(s=>s.cat==='urgent')?0:1,first=g=>g.steps.map(s=>s.due||'9999').sort()[0]||'9999';
  // The brand's root project (direct steps) lists first, matching the panel.
@@ -98,7 +98,7 @@ const outlineModel=(b,{projects,mm,projectId}={})=>{
   for(const x of g.steps.sort((a,b2)=>(a.due||'9999').localeCompare(b2.due||'9999')))
    lines.push(`${x.item.title} - ${owner(x.item)} - ${x.cat==='urgent'?x.why:x.cat==='active'?'In progress':'Due'}${x.due?' '+outlineDate(x.due):''}`);
   for(const x of g.done)lines.push(`${x.item.title} - ${owner(x.item)} - Done`);
-  if(g.rdone?.length){lines.push('Done (last 5 working days):');for(const x of g.rdone)lines.push(`${x.item.title} - ${owner(x.item)} - Done ${outlineDate(dayKey(new Date(x.at).getTime()))}`);}
+  if(g.rdone?.length){lines.push('Done steps updated (last 5 working days):');for(const x of g.rdone)lines.push(`${x.item.title} - ${owner(x.item)} - Done; updated ${outlineDate(dayKey(new Date(x.at).getTime()))}; completion date not recorded`);}
   return {name:g.p.name,id:g.p.id,merged:!projectId&&g.p.name.trim().toLowerCase()===b.name.trim().toLowerCase(),lines};
  });
  return {head,headId:(projectId?gs[0].p.id:b.project_id)||null,groups,projectScoped:!!projectId};

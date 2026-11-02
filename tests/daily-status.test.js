@@ -20,7 +20,7 @@ test('groups by brand, dedupes urgent/next/week, logs changes',()=>{
  assert.deepEqual(acme.next.map(x=>x.item.id),['3']);
  assert.deepEqual(acme.week.map(x=>x.item.id),['4']);
  assert.deepEqual(zed.urgent.map(x=>x.item.id),['5']);
- assert.deepEqual(zed.changed.map(x=>x.kind+':'+(x.text||'')),['done:Done','note:n2']);
+ assert.deepEqual(zed.changed.map(x=>x.kind+':'+(x.text||'')),['done:Updated while Done','note:n2']);
  assert.equal(r.brands[0].name,'Acme');
 });
 
@@ -43,7 +43,7 @@ test('statusOutline renders brand/CX head, notes, owner and date tags',()=>{
  assert.ok(lines.indexOf('  files moved')<lines.indexOf('  Print - No owner - Due Oct 23'),'root project content before subprojects');
  assert.ok(lines.includes('  Kickoff deck - Aaron F. - Past due Oct 17'),'past due line: '+text);
  assert.ok(lines.includes('  Build - Aaron F. & Pat M. - Blocked'),'blocked co-owner line: '+text);
- assert.ok(lines.includes('  Old step - Pat M. - Done Oct 19'),'done line: '+text);
+ assert.ok(lines.includes('  Old step - Pat M. - Done; updated Oct 19; completion date not recorded'),'done line: '+text);
  assert.ok(lines.includes('  Print - No owner - Due Oct 23'),'due line: '+text);
  const acme=r.brands.find(b=>b.name==='Acme');
  assert.equal(brandOutline(acme,{projects,mm}).split('\n')[0],'Acme: CX Riley');
@@ -94,7 +94,7 @@ test('doneWindowStart spans 5 working days, skipping weekends',()=>{
  assert.equal(doneWindowStart('2026-10-19'),'2026-10-13'); // Mon: 13,14,15,16,19
  assert.equal(doneWindowStart('2026-10-26'),'2026-10-20'); // next Mon: 20,21,22,23,26
 });
-test('Done subsection lists steps completed in the last 5 working days',()=>{
+test('Done subsection lists edited Done steps without claiming completion dates',()=>{
  const projects={p:{id:'p',name:'Logo',client_id:'c',status:'active',cx:[]},q:{id:'q',name:'Deck',client_id:'d',status:'active'}};
  const clients=[{id:'c',name:'Acme'},{id:'d',name:'Zed'}];
  const mm={m2:{id:'m2',name:'Pat M.'}};
@@ -110,18 +110,18 @@ test('Done subsection lists steps completed in the last 5 working days',()=>{
  assert.deepEqual(acme.rdone.map(x=>x.item.id),['1','2','3'],'in-window done only, newest first: '+JSON.stringify(acme.rdone.map(x=>x.item.id)));
  const text=statusOutline(r,{projects,mm});
  const lines=text.split('\n');
- const head=lines.indexOf('  Done (last 5 working days):');
+ const head=lines.indexOf('  Done steps updated (last 5 working days):');
  assert.ok(head>-1,'Done subsection present: '+text);
- assert.ok(lines.includes('  Recent fix - Pat M. - Done Oct 20'),'owner + done date: '+text);
- assert.ok(lines.includes('  Edge fix - No owner - Done Oct 15'),'window edge included: '+text);
+ assert.ok(lines.includes('  Recent fix - Pat M. - Done; updated Oct 20; completion date not recorded'),'owner + done date: '+text);
+ assert.ok(lines.includes('  Edge fix - No owner - Done; updated Oct 15; completion date not recorded'),'window edge included: '+text);
  assert.ok(!text.includes('Too old'),'older than 5 working days excluded');
  assert.ok(!text.includes('RETIRED'),'retired excluded');
- assert.ok(lines.indexOf('  Recent fix - Pat M. - Done Oct 20')>head,'done lines under the subsection head');
+ assert.ok(lines.indexOf('  Recent fix - Pat M. - Done; updated Oct 20; completion date not recorded')>head,'done lines under the subsection head');
  const proj=brandOutline(acme,{projects,mm,projectId:'p'});
- assert.ok(proj.includes('Done (last 5 working days):'),'project-scoped copy includes Done subsection');
+ assert.ok(proj.includes('Done steps updated (last 5 working days):'),'project-scoped copy includes Done subsection');
  assert.ok(!proj.includes('Open step - No owner - Due Oct 22'),'project scoping still holds');
  const html=statusOutlineHtml(r,{projects,mm});
- assert.ok(html.includes('Done (last 5 working days):'),'HTML copy includes Done subsection');
+ assert.ok(html.includes('Done steps updated (last 5 working days):'),'HTML copy includes Done subsection');
  assert.equal(dayKey(new Date('2026-10-21T05:59:00Z').getTime()),'2026-10-20','late-night UTC still prior Denver day');
 });
 
@@ -142,7 +142,7 @@ test('started work never drops off: in-progress steps always show (no edit-age l
 });
 
 import {dailyProjectGroups} from '../src/daily-status.js';
-test('recent completion renders once below Done divider in screen and copied status',()=>{
+test('recently updated Done step renders once below Done divider in screen and copied status',()=>{
  const item={id:'recent',project_id:'p',title:'Recent completion',status:'done',updated_at:'2026-10-19T14:00:00Z'};
  const r=dailyStatus({items:[item],projects,clients,today:'2026-10-19',now});
  const b=r.brands[0];
@@ -160,3 +160,23 @@ test('clients sorted alphabetically regardless of urgent count',()=>{const r=dai
   projects.p.name='Acme Engagement';
   assert.ok(statusOutline(r,{projects,mm:{}}).includes('  Acme Engagement'));
  });
+
+test('note-only edit of an old Done step is an update, never a completion claim',()=>{
+ const item={id:'old',project_id:'p',title:'Cleanup delivered earlier',status:'done',due_date:'2026-10-23',created_at:'2026-10-01T16:00:00Z',updated_at:'2026-11-02T16:00:00Z',notes:'[Oct23 source] Completed cleanup before later note update'};
+ const before=JSON.stringify(item);
+ const r=dailyStatus({items:[item],projects,clients,today:'2026-11-02',now:new Date('2026-11-02T16:15:00Z')});
+ const b=r.brands[0];
+ assert.equal(b.changed[0].text,'Updated while Done');
+ for(const text of [statusOutline(r,{projects}),statusOutlineHtml(r,{projects})]){
+  assert.ok(text.includes('Done; updated Nov 2; completion date not recorded'));
+  assert.ok(!text.includes('Done Nov 2'));
+  assert.ok(!text.includes('Completed Nov 2'));
+ }
+ assert.equal(JSON.stringify(item),before,'status, due date and source notes remain untouched');
+});
+
+test('Done edit window excludes future and invalid timestamps',()=>{
+ const items=['2026-11-03T16:00:00Z','invalid',null].map((updated_at,n)=>({id:String(n),project_id:'p',title:'Done',status:'done',updated_at}));
+ const r=dailyStatus({items,projects,clients,today:'2026-11-02',now:new Date('2026-11-02T16:15:00Z')});
+ assert.equal(r.totals.rdone,0);assert.equal(r.totals.changed,0);
+});
