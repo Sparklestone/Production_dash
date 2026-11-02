@@ -13,7 +13,7 @@ test('Daily hide done removes finished steps and finished-only project/client br
  assert.deepEqual(r.brands.map(b=>b.key),['c','e','f']);
  assert.deepEqual(r.brands.flatMap(b=>b.changed.map(n=>n.project.id)),['p','e','parent','child']);
  assert.equal(r.totals.rdone,0);assert.equal(r.totals.changed,4);
- assert.deepEqual(r.brands.flatMap(b=>b.urgent.map(n=>n.item.id)),['open','child-open']);
+ assert.deepEqual(r.brands.flatMap(b=>b.urgent.map(n=>n.item.id)),['open']);
  assert.equal(JSON.stringify(data),before,'view filter must not mutate source records');
  const text=statusOutline(r,{projects});assert.ok(!text.includes('finished'));assert.ok(!statusOutlineHtml(r,{projects}).includes('finished'));
  const restored=dailyStatus(data);assert.equal(restored.totals.rdone,3);assert.ok(statusOutline(restored,{projects}).includes('finished'));

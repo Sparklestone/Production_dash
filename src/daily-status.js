@@ -40,7 +40,7 @@ export function dailyStatus({items,updates=[],projects,clients=[],today,now=new 
   const added=i.created_at&&new Date(i.created_at).getTime()>=start;
   if(i.status==='done'&&when>=start&&when<=now.getTime()&&!added&&!/^RETIRED/i.test(i.title))b.changed.push({kind:'done',item:i,project:p,at:i.updated_at,text:'Updated while Done'});
   if(i.status==='done'&&i.updated_at&&!/^RETIRED/i.test(i.title)&&when<=now.getTime()&&dayKey(when)>=doneStart)b.rdone.push({item:i,project:p,at:i.updated_at});
-  if(i.status==='done'||(!hideDone&&projectIsDone(p,projects)))continue;
+  if(i.status==='done'||projectIsDone(p,projects))continue;
   const due=dateKey(i.due_date);
   const mark=x=>{seen.add(i.id);return x;};
   if(due&&due<today)b.urgent.push(mark({item:i,project:p,due,why:'Past due'}));
