@@ -20,7 +20,7 @@ test('Daily hide done removes finished steps and finished-only project/client br
 });
 test('Daily repeated controls share one state, invalidate model cache and are independent of Clients filter',()=>{
  const js=fs.readFileSync(new URL('../src/main.js',import.meta.url),'utf8');
- assert.match(js,/dailyHideDoneControl\(b.key\)/);assert.match(js,/dailyHideDoneControl\('summary'\)/);
+ assert.match(js,/dailyHideDoneControl\(b.key\)\}\$\{b.project_id/);assert.match(js,/dailyHideDoneControl\('summary'\)/);
  assert.match(js,/Math.floor\(Date.now\(\)\/60000\),state.dailyHideDone/);
  assert.match(js,/state.dailyHideDone=e.target.checked;render\(\)/);
  assert.match(js,/querySelectorAll\('\[data-daily-hide-done\]'\)/);
