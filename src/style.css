@@ -556,3 +556,9 @@ select.pill:disabled{cursor:default;opacity:.7}
 .brief-note-full{white-space:pre-wrap;overflow-wrap:anywhere;margin:0}
 .brief-note [hidden]{display:none!important}
 @media(max-width:650px){.brief-note-line{gap:4px}.brief-note-line>.daily-meta{font-size:10px}.daily-note-expand{min-width:28px}}
+
+/* One Daily-wide filter, repeated in each sticky client bar. */
+.daily-hide-done{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;flex:0 0 auto;font-size:13px;cursor:pointer;min-height:32px}
+.daily-hide-done input{width:17px;height:17px;margin:0;accent-color:#2456a6}
+.daily-brand-head>.daily-hide-done{color:#fff}
+.daily-status>summary>.daily-hide-done{margin-left:10px}

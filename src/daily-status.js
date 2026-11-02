@@ -1,6 +1,7 @@
 import {dateKey,projectIsDone} from './schedule.js';
 import {ownerNames,projectCx} from './step-assignment.js';
 import {shiftDate} from './insights.js';
+import {visibleProjects} from './hide-done.js';
 
 // 24 business hours back from `now`: weekend hours do not count.
 // Monday 9:37am looks back to Friday 9:37am.
@@ -26,19 +27,20 @@ export const DAILY=/^\s*\[Daily\]\s*/i;
 const blocked=i=>['blocked','waiting'].includes(i.status);
 // Each brand (client) gets four sections. Urgent, Next few days and This week
 // never repeat a step (highest priority wins); Changed is a log and may overlap.
-export function dailyStatus({items,updates=[],projects,clients=[],today,now=new Date(),nextDays=3}){
+export function dailyStatus({items,updates=[],projects,clients=[],today,now=new Date(),nextDays=3,hideDone=false}){
  const cm=Object.fromEntries(clients.map(c=>[c.id,c])),start=businessWindowStart(now).getTime(),end=shiftDate(today,7),horizon=shiftDate(today,nextDays),doneStart=doneWindowStart(today);
  const rootOf=p=>{let n=p,s=0;while(n?.parent_id&&projects[n.parent_id]&&s++<20)n=projects[n.parent_id];return n;};
  const brands={};
  const brand=p=>{const root=rootOf(p),c=cm[p?.client_id]||cm[root?.client_id],name=(c?(c.aka?c.name+'/'+c.aka:c.name):null)||root?.name||'No client',key=c?.id||'p:'+(root?.id||'none');return brands[key]||(brands[key]={key,name,project_id:root?.id||p?.id,changed:[],urgent:[],next:[],week:[],active:[],rdone:[]});};
+ const visible=hideDone?new Set(visibleProjects(Object.values(projects),projects,items,true).map(p=>p.id)):null;
  const seen=new Set();
  for(const i of items){
-  const p=projects[i.project_id];if(!p)continue;
+  const p=projects[i.project_id];if(!p||(hideDone&&(i.status==='done'||!visible.has(p.id))))continue;
   const b=brand(p),when=i.updated_at?new Date(i.updated_at).getTime():0;
   const added=i.created_at&&new Date(i.created_at).getTime()>=start;
   if(i.status==='done'&&when>=start&&when<=now.getTime()&&!added&&!/^RETIRED/i.test(i.title))b.changed.push({kind:'done',item:i,project:p,at:i.updated_at,text:'Updated while Done'});
   if(i.status==='done'&&i.updated_at&&!/^RETIRED/i.test(i.title)&&when<=now.getTime()&&dayKey(when)>=doneStart)b.rdone.push({item:i,project:p,at:i.updated_at});
-  if(i.status==='done'||projectIsDone(p,projects))continue;
+  if(i.status==='done'||(!hideDone&&projectIsDone(p,projects)))continue;
   const due=dateKey(i.due_date);
   const mark=x=>{seen.add(i.id);return x;};
   if(due&&due<today)b.urgent.push(mark({item:i,project:p,due,why:'Past due'}));
@@ -51,7 +53,7 @@ export function dailyStatus({items,updates=[],projects,clients=[],today,now=new 
   else if(i.status==='in_progress')b.active.push(mark({item:i,project:p,due}));
  }
  for(const u of updates){
-  const p=projects[u.project_id];if(!p||!u.created_at)continue;const at=new Date(u.created_at).getTime();
+  const p=projects[u.project_id];if(!p||!u.created_at||(hideDone&&!visible.has(p.id)))continue;const at=new Date(u.created_at).getTime();
   if(at>=start&&at<=now.getTime()&&DAILY.test(u.note||''))brand(p).changed.push({kind:'note',project:p,at:u.created_at,text:u.note.replace(DAILY,'').trim()});
  }
  const byDue=(a,b)=>(a.due||'9999').localeCompare(b.due||'9999')||a.item.title.localeCompare(b.item.title);
