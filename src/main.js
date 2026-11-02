@@ -1,3 +1,4 @@
+import {dailyNote,dailyNoteKey,toggleDailyNote} from './daily-note.js';
 import {hydrateCardBody} from './lazy-card-body.js';
 import {clientCx,cxText} from './cx-display.js';
 import {overviewPreference,overviewItemVisible,saveOverviewPreference} from './team-overview.js';
@@ -641,6 +642,7 @@ function myWorkCalendar(d,items){
  const chart=ganttChart(axis,groups,lh);
  return `<section class="my-work-calendar"><h2 class="calendar-period-title">${esc(ganttPeriodTitle(anchor,'week',axis))}</h2>${chart.html}${undated.length?`<section class="my-work-undated"><h2 class="calendar-period-title undated-title">No date <span class="number">${undated.length}</span></h2><div class="task-grid">${items.filter(i=>!dateKey(i.due_date)).map(i=>taskCard(i,d)).join('')}</div></section>`:''}${groups.length?'':'<p class="empty">No dated steps in this filter.</p>'}</section>`;
 }
+const expandedDailyNotes=new Set();
 let dailyMemo=null;
 const DAILY_COLS=[['urgent','urgent','Urgent (whole team, all brands): steps that are past due, due today, or blocked / waiting on others. My work > Needs attention is only your own steps, so its count is smaller. Click to show only these.'],['changed','changed','Changed in the last 24 business hours: edits to Done steps plus plain-words [Daily] notes (date moves, delays, deliveries, decisions). Click to list them.'],['active','in progress','Open steps that are started (in progress) but not past due, due soon, or blocked. Started work always shows here so it never drops off the status. Click to show only these.'],['next','next few days','Open steps due in the next 3 days that are not already urgent. Click to show only these.'],['week','later (7 days)','Open steps due from day 4 through the next 7 days that are not already urgent. Click to show only these.']];
 function dailyDateStatus(item,d,caption){
@@ -650,7 +652,7 @@ function dailyDateStatus(item,d,caption){
 }
 function briefing(b,d){
  const gs=dailyProjectGroups(b,state.dailyFocus||'');
- return `<ul class="brief">${gs.map(g=>`<li class="brief-proj">${`<div class="daily-line">${projectSelectControl(g.p)}<b><button class="title-button" data-open="${esc(g.p.id)}">${esc(g.p.name)}</button></b>${commentButton(g.p,null)} <button class="comment daily-copy" data-copy-brand="${esc(b.key)}" data-copy-project="${esc(g.p.id)}">Copy text</button></div>`}${g.notes.map(n=>`<p class="brief-note">${esc(n.text)} <span class="daily-meta">${esc(stamp(n.at))}</span></p>`).join('')}<ul class="brief-steps">${g.steps.sort((x,y)=>(x.due||'9999').localeCompare(y.due||'9999')).map(x=>`<li>${stepCheckbox(x.item)}<button class="title-button" data-open="${esc(x.project.id)}" data-target-item="${esc(x.item.id)}">${esc(x.item.title)}</button> - ${inlineOwner(x.item,d)} - ${dailyDateStatus(x.item,d,x.cat==='urgent'?x.why:x.cat==='active'?'Due':'Due')}</li>`).join('')}${g.done.map(x=>`<li>${stepCheckbox(x.item)}<button class="title-button" data-open="${esc(x.project.id)}" data-target-item="${esc(x.item.id)}">${esc(x.item.title)}</button> - ${inlineOwner(x.item,d)} - ${dailyDateStatus(x.item,d,'Due')}</li>`).join('')}${g.rdone.length?`<li class="brief-done-subhead">Done steps updated (last 5 working days)</li>`+g.rdone.map(x=>`<li class="brief-rdone">${stepCheckbox(x.item)}<button class="title-button" data-open="${esc(x.project.id)}" data-target-item="${esc(x.item.id)}">${esc(x.item.title)}</button> - ${inlineOwner(x.item,d)} - ${dailyDateStatus(x.item,d,'Due')} <span class="daily-completed-at">Updated ${esc(fmtDate(dayKey(new Date(x.at).getTime())))} · completion date not recorded</span></li>`).join(''):''}</ul></li>`).join('')}</ul>`;
+ return `<ul class="brief">${gs.map(g=>`<li class="brief-proj">${`<div class="daily-line">${projectSelectControl(g.p)}<b><button class="title-button" data-open="${esc(g.p.id)}">${esc(g.p.name)}</button></b>${commentButton(g.p,null)} <button class="comment daily-copy" data-copy-brand="${esc(b.key)}" data-copy-project="${esc(g.p.id)}">Copy text</button></div>`}${g.notes.map(n=>dailyNote(n,stamp(n.at),expandedDailyNotes.has(dailyNoteKey(n)))).join('')}<ul class="brief-steps">${g.steps.sort((x,y)=>(x.due||'9999').localeCompare(y.due||'9999')).map(x=>`<li>${stepCheckbox(x.item)}<button class="title-button" data-open="${esc(x.project.id)}" data-target-item="${esc(x.item.id)}">${esc(x.item.title)}</button> - ${inlineOwner(x.item,d)} - ${dailyDateStatus(x.item,d,x.cat==='urgent'?x.why:x.cat==='active'?'Due':'Due')}</li>`).join('')}${g.done.map(x=>`<li>${stepCheckbox(x.item)}<button class="title-button" data-open="${esc(x.project.id)}" data-target-item="${esc(x.item.id)}">${esc(x.item.title)}</button> - ${inlineOwner(x.item,d)} - ${dailyDateStatus(x.item,d,'Due')}</li>`).join('')}${g.rdone.length?`<li class="brief-done-subhead">Done steps updated (last 5 working days)</li>`+g.rdone.map(x=>`<li class="brief-rdone">${stepCheckbox(x.item)}<button class="title-button" data-open="${esc(x.project.id)}" data-target-item="${esc(x.item.id)}">${esc(x.item.title)}</button> - ${inlineOwner(x.item,d)} - ${dailyDateStatus(x.item,d,'Due')} <span class="daily-completed-at">Updated ${esc(fmtDate(dayKey(new Date(x.at).getTime())))} · completion date not recorded</span></li>`).join(''):''}</ul></li>`).join('')}</ul>`;
 }
 function currentDaily(d){
  const memoKey=[state.data,today(),Math.floor(Date.now()/60000)];
@@ -659,7 +661,7 @@ function currentDaily(d){
 let dailyHtmlMemo=null;
 function dailyStatusView(d){
  if(isFreelancer(state.access))return '';
- const r=currentDaily(d),memoKey=[r,state.dailyOpen,state.dailyFocus||'',Object.keys(state.addCo).sort().join(','),state.selectedSteps.join(','),state.selectedProjects.join(','),state.selectedClients.join(',')];
+ const r=currentDaily(d),memoKey=[r,state.dailyOpen,state.dailyFocus||'',Object.keys(state.addCo).sort().join(','),state.selectedSteps.join(','),state.selectedProjects.join(','),state.selectedClients.join(','),[...expandedDailyNotes].sort().join('|')];
  if(dailyHtmlMemo&&dailyHtmlMemo.key.every((v,i)=>v===memoKey[i]))return dailyHtmlMemo.value;
  const html=buildDailyStatusView(d,r);
  dailyHtmlMemo={key:memoKey,value:html};
@@ -955,6 +957,7 @@ function bind(root){
  root.querySelector('.finished-work')?.addEventListener('toggle',e=>{state.finishedOpen=e.target.open;});
  root.querySelectorAll('[data-daily-focus]').forEach(el=>{const go=e=>{e.preventDefault();e.stopPropagation();state.dailyFocus=el.dataset.dailyFocus&&state.dailyFocus!==el.dataset.dailyFocus?el.dataset.dailyFocus:'';if(el.dataset.dailyFocus)state.dailyOpen=true;render();document.querySelector('.daily-status')?.scrollIntoView({block:'start'});};el.addEventListener('click',go);el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' ')go(e);});});
  root.querySelector('.daily-status')?.addEventListener('toggle',e=>{if(state.dailyOpen!==e.target.open){state.dailyOpen=e.target.open;render();}});
+ root.querySelectorAll('[data-daily-note-toggle]').forEach(button=>button.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();const key=button.dataset.dailyNoteToggle,expanded=!expandedDailyNotes.has(key);if(expanded)expandedDailyNotes.add(key);else expandedDailyNotes.delete(key);dailyHtmlMemo=null;toggleDailyNote(button.closest('[data-daily-note]'),expanded);}));
  root.querySelectorAll('.daily-copy').forEach(btn=>btn.addEventListener('click',async e=>{
   e.preventDefault();e.stopPropagation();
   const d=derive(),r=currentDaily(d);

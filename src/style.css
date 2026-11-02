@@ -546,3 +546,13 @@ select.pill:disabled{cursor:default;opacity:.7}
    Paint containment can clip a sticky descendant as its section scrolls. */
 .daily-brand{content-visibility:visible;contain-intrinsic-size:none}
 .daily-brand-head{position:sticky;top:0;z-index:10;box-shadow:0 2px 5px #0002}
+
+/* Communication logs start as one line; expansion keeps the full source. */
+.brief-note-line{display:flex;align-items:baseline;gap:8px;min-width:0}
+.brief-note-preview{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:clip}
+.brief-note-line>.daily-meta{flex:none;white-space:nowrap;font-size:11px}
+.daily-note-expand,.daily-note-compress{border:0;background:transparent;color:#2456a6;min-height:28px;padding:0 4px;font-size:13px;text-decoration:underline;text-underline-offset:2px}
+.daily-note-expand{flex:none;min-width:28px;font-size:20px;line-height:1}
+.brief-note-full{white-space:pre-wrap;overflow-wrap:anywhere;margin:0}
+.brief-note [hidden]{display:none!important}
+@media(max-width:650px){.brief-note-line{gap:4px}.brief-note-line>.daily-meta{font-size:10px}.daily-note-expand{min-width:28px}}
