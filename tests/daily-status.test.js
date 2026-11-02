@@ -110,7 +110,7 @@ test('Done subsection lists edited Done steps without claiming completion dates'
  assert.deepEqual(acme.rdone.map(x=>x.item.id),['1','2','3'],'in-window done only, newest first: '+JSON.stringify(acme.rdone.map(x=>x.item.id)));
  const text=statusOutline(r,{projects,mm});
  const lines=text.split('\n');
- const head=lines.indexOf('  Done steps updated (last 5 working days):');
+ const head=lines.indexOf('  3 DONE STEPS UPDATED (LAST 5 WORKING DAYS):');
  assert.ok(head>-1,'Done subsection present: '+text);
  assert.ok(lines.includes('  Recent fix - Pat M. - Done; updated Oct 20; completion date not recorded'),'owner + done date: '+text);
  assert.ok(lines.includes('  Edge fix - No owner - Done; updated Oct 15; completion date not recorded'),'window edge included: '+text);
@@ -118,10 +118,10 @@ test('Done subsection lists edited Done steps without claiming completion dates'
  assert.ok(!text.includes('RETIRED'),'retired excluded');
  assert.ok(lines.indexOf('  Recent fix - Pat M. - Done; updated Oct 20; completion date not recorded')>head,'done lines under the subsection head');
  const proj=brandOutline(acme,{projects,mm,projectId:'p'});
- assert.ok(proj.includes('Done steps updated (last 5 working days):'),'project-scoped copy includes Done subsection');
+ assert.ok(proj.includes('3 DONE STEPS UPDATED (LAST 5 WORKING DAYS):'),'project-scoped copy includes Done subsection');
  assert.ok(!proj.includes('Open step - No owner - Due Oct 22'),'project scoping still holds');
  const html=statusOutlineHtml(r,{projects,mm});
- assert.ok(html.includes('Done steps updated (last 5 working days):'),'HTML copy includes Done subsection');
+ assert.ok(html.includes('3 DONE STEPS UPDATED (LAST 5 WORKING DAYS):'),'HTML copy includes Done subsection');
  assert.equal(dayKey(new Date('2026-10-21T05:59:00Z').getTime()),'2026-10-20','late-night UTC still prior Denver day');
 });
 

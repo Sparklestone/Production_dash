@@ -35,7 +35,13 @@ export function dailyStatus({items,updates=[],projects,clients=[],today,now=new 
  const visible=hideDone?new Set(visibleProjects(Object.values(projects),projects,items,true).map(p=>p.id)):null;
  const seen=new Set();
  for(const i of items){
-  const p=projects[i.project_id];if(!p||(hideDone&&(i.status==='done'||!visible.has(p.id))))continue;
+  const p=projects[i.project_id];if(!p)continue;
+  if(hideDone&&i.status==='done'){
+   const when=i.updated_at?new Date(i.updated_at).getTime():0;
+   if(i.updated_at&&!/^RETIRED/i.test(i.title)&&when<=now.getTime()&&dayKey(when)>=doneStart){const b=brand(p);(b.hiddenRdone||=[]).push({item:i,project:p,at:i.updated_at});}
+   continue;
+  }
+  if(hideDone&&!visible.has(p.id))continue;
   const b=brand(p),when=i.updated_at?new Date(i.updated_at).getTime():0;
   const added=i.created_at&&new Date(i.created_at).getTime()>=start;
   if(i.status==='done'&&when>=start&&when<=now.getTime()&&!added&&!/^RETIRED/i.test(i.title))b.changed.push({kind:'done',item:i,project:p,at:i.updated_at,text:'Updated while Done'});
@@ -57,10 +63,10 @@ export function dailyStatus({items,updates=[],projects,clients=[],today,now=new 
   if(at>=start&&at<=now.getTime()&&DAILY.test(u.note||''))brand(p).changed.push({kind:'note',project:p,at:u.created_at,text:u.note.replace(DAILY,'').trim()});
  }
  const byDue=(a,b)=>(a.due||'9999').localeCompare(b.due||'9999')||a.item.title.localeCompare(b.item.title);
- const list=Object.values(brands).filter(b=>b.changed.length+b.urgent.length+b.next.length+b.week.length+b.active.length+b.rdone.length);
+ const list=Object.values(brands).filter(b=>b.changed.length+b.urgent.length+b.next.length+b.week.length+b.active.length+b.rdone.length+(b.hiddenRdone?.length||0));
  for(const b of list){b.urgent.sort(byDue);b.next.sort(byDue);b.week.sort(byDue);b.active.sort(byDue);b.changed.sort((x,y)=>y.at.localeCompare(x.at));b.rdone.sort((x,y)=>y.at.localeCompare(x.at));}
  list.sort((a,b)=>a.name.localeCompare(b.name));
- return {brands:list,since:new Date(start),totals:list.reduce((t,b)=>({changed:t.changed+b.changed.length,urgent:t.urgent+b.urgent.length,next:t.next+b.next.length,week:t.week+b.week.length,active:t.active+b.active.length,rdone:t.rdone+b.rdone.length}),{changed:0,urgent:0,next:0,week:0,active:0,rdone:0})};
+ return {brands:list,since:new Date(start),totals:list.reduce((t,b)=>({changed:t.changed+b.changed.length,urgent:t.urgent+b.urgent.length,next:t.next+b.next.length,week:t.week+b.week.length,active:t.active+b.active.length,rdone:t.rdone+b.rdone.length+(b.hiddenRdone?.length||0)}),{changed:0,urgent:0,next:0,week:0,active:0,rdone:0})};
 }
 
 // Plain-text and HTML outlines of the daily status, for pasting into Teams.
@@ -74,9 +80,10 @@ const outlineEsc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace
 export const dailyProjectGroups=(b,focus="")=>{
  const keep=k=>!focus||focus===k;
  const projs=new Map();
- const get=p=>projs.get(p.id)||(projs.set(p.id,{p,notes:[],done:[],steps:[],rdone:[]}),projs.get(p.id));
+ const get=p=>projs.get(p.id)||(projs.set(p.id,{p,notes:[],done:[],steps:[],rdone:[],hiddenDoneCount:0}),projs.get(p.id));
  for(const x of b.changed)if(keep('changed')){const g=get(x.project);(x.kind==='note'?g.notes:g.done).push(x);}
  for(const x of b.rdone||[])get(x.project).rdone.push(x);
+ for(const x of b.hiddenRdone||[])get(x.project).hiddenDoneCount++;
  for(const [k,rows] of [['urgent',b.urgent],['next',b.next],['week',b.week],['active',b.active||[]]])if(keep(k))for(const x of rows)get(x.project).steps.push({...x,cat:k});
  // Done steps with recent edits are already in their own section. These are
  // edit times, never proof of completion timing. Render each step only once.
@@ -100,7 +107,8 @@ const outlineModel=(b,{projects,mm,projectId}={})=>{
   for(const x of g.steps.sort((a,b2)=>(a.due||'9999').localeCompare(b2.due||'9999')))
    lines.push(`${x.item.title} - ${owner(x.item)} - ${x.cat==='urgent'?x.why:x.cat==='active'?'In progress':'Due'}${x.due?' '+outlineDate(x.due):''}`);
   for(const x of g.done)lines.push(`${x.item.title} - ${owner(x.item)} - Done`);
-  if(g.rdone?.length){lines.push('Done steps updated (last 5 working days):');for(const x of g.rdone)lines.push(`${x.item.title} - ${owner(x.item)} - Done; updated ${outlineDate(dayKey(new Date(x.at).getTime()))}; completion date not recorded`);}
+  if(g.hiddenDoneCount)lines.push(`${g.hiddenDoneCount} DONE STEPS UPDATED (LAST 5 WORKING DAYS)`);
+  if(g.rdone?.length){lines.push(`${g.rdone.length} DONE STEPS UPDATED (LAST 5 WORKING DAYS):`);for(const x of g.rdone)lines.push(`${x.item.title} - ${owner(x.item)} - Done; updated ${outlineDate(dayKey(new Date(x.at).getTime()))}; completion date not recorded`);}
   return {name:g.p.name,id:g.p.id,merged:!projectId&&g.p.name.trim().toLowerCase()===b.name.trim().toLowerCase(),lines};
  });
  return {head,headId:(projectId?gs[0].p.id:b.project_id)||null,groups,projectScoped:!!projectId};
