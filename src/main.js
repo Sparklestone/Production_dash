@@ -448,7 +448,8 @@ function bulkToolbar(){
  return `<aside id="bulk-toolbar" class="bulk-toolbar" ${count<1?'hidden':''} aria-label="Selected step actions"><strong data-selection-count>${count} step${count===1?'':'s'} selected</strong><button data-bulk-action="comment">Comment</button><button data-bulk-action="done">Mark done</button><button data-bulk-action="move">Move to project</button><button data-bulk-action="timing">Adjust timing</button><button data-bulk-action="rename" ${count!==1?'disabled':''}>Rename</button><button data-clear-selection>Clear selection</button><span role="status" id="bulk-feedback">${esc(state.bulkFeedback)}</span></aside>`;
 }
 function updateSelectionUI(){
- const allowed=new Set(state.data.sched.filter(i=>canCompleteItem(state.access,i)&&!projectIsDone(derive().pm[i.project_id],derive().pm)).map(i=>i.id));
+ const d=derive();
+ const allowed=new Set(state.data.sched.filter(i=>canCompleteItem(state.access,i)&&!projectIsDone(d.pm[i.project_id],d.pm)).map(i=>i.id));
  state.selectedSteps=state.selectedSteps.filter(id=>allowed.has(id));
  document.querySelectorAll('[data-select-step]').forEach(el=>{el.checked=state.selectedSteps.includes(el.dataset.selectStep);el.closest('[data-task-card],[data-card-item],.calendar-selectable')?.classList.toggle('is-selected',el.checked);});
  document.querySelectorAll('#bulk-toolbar').forEach(toolbar=>{toolbar.hidden=state.selectedSteps.length<1;toolbar.querySelector('[data-selection-count]').textContent=state.selectedSteps.length+' step'+(state.selectedSteps.length===1?'':'s')+' selected';const rb=toolbar.querySelector('[data-bulk-action="rename"]');if(rb)rb.disabled=state.selectedSteps.length!==1;});
